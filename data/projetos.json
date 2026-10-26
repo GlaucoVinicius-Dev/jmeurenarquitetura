@@ -1,0 +1,106 @@
+{
+  "projetos": [
+    {
+      "titulo": "Apartamento 314 Norte",
+      "categoria": "Residencial",
+      "capa": "Projetos/apart314norte/Imagens/314nr (1).jpg",
+      "pdf": "Projetos/apart314norte/Pdf/projeto.pdf",
+      "imagens": [
+        "Projetos/apart314norte/Imagens/314nr (1).jpg",
+        "Projetos/apart314norte/Imagens/314nr (2).jpg",
+        "Projetos/apart314norte/Imagens/314nr (3).jpg",
+        "Projetos/apart314norte/Imagens/314nr (4).jpg",
+        "Projetos/apart314norte/Imagens/314nr (5).jpg",
+        "Projetos/apart314norte/Imagens/314nr (6).jpg",
+        "Projetos/apart314norte/Imagens/314nr (7).jpg",
+        "Projetos/apart314norte/Imagens/314nr (8).jpg"
+      ]
+    },
+    {
+      "titulo": "Apartamento 403 Norte",
+      "categoria": "Residencial",
+      "capa": "Projetos/apart403norte/Imagens/403n (1).png",
+      "pdf": "Projetos/apart403norte/Pdf/projeto.pdf",
+      "imagens": [
+        "Projetos/apart403norte/Imagens/403n (1).png",
+        "Projetos/apart403norte/Imagens/403n (2).png"
+      ]
+    },
+    {
+      "titulo": "Apartamento 410 Norte",
+      "categoria": "Residencial",
+      "capa": "Projetos/apart410norte/Imagens/410n (1).jpg",
+      "pdf": "Projetos/apart410norte/Pdf/projeto.pdf",
+      "imagens": [
+        "Projetos/apart410norte/Imagens/410n (1).jpg",
+        "Projetos/apart410norte/Imagens/410n (2).jpg",
+        "Projetos/apart410norte/Imagens/410n (3).jpg",
+        "Projetos/apart410norte/Imagens/410n (4).jpg",
+        "Projetos/apart410norte/Imagens/410n (5).jpg",
+        "Projetos/apart410norte/Imagens/410n (6).jpg",
+        "Projetos/apart410norte/Imagens/410n (7).jpg",
+        "Projetos/apart410norte/Imagens/410n (8).jpg"
+      ]
+    },
+    {
+      "titulo": "Apartamento Park Sul",
+      "categoria": "Residencial",
+      "capa": "Projetos/apartParkSul/Imagens/IMG_20250707_100227917.jpg",
+      "pdf": "Projetos/apartParkSul/Pdf/Projeto.pdf",
+      "imagens": [
+        "Projetos/apartParkSul/Imagens/IMG_20250707_100227917.jpg",
+        "Projetos/apartParkSul/Imagens/IMG_20250707_100237315_HDR.jpg",
+        "Projetos/apartParkSul/Imagens/IMG_20250707_100257331_HDR.jpg",
+        "Projetos/apartParkSul/Imagens/Sala.png",
+        "Projetos/apartParkSul/Imagens/sala2.png"
+      ]
+    },
+    {
+      "titulo": "Espaço Gourmet Riacho Fundo",
+      "categoria": "Comercial",
+      "capa": "Projetos/gourmetcondriachofundo/Imagens/gourmet (1).png",
+      "pdf": "Projetos/gourmetcondriachofundo/Pdf/Projeto.pdf",
+      "imagens": [
+        "Projetos/gourmetcondriachofundo/Imagens/gourmet (1).png",
+        "Projetos/gourmetcondriachofundo/Imagens/gourmet (2).png",
+        "Projetos/gourmetcondriachofundo/Imagens/gourmet (3).png",
+        "Projetos/gourmetcondriachofundo/Imagens/gourmet (4).png",
+        "Projetos/gourmetcondriachofundo/Imagens/gourmet (5).png",
+        "Projetos/gourmetcondriachofundo/Imagens/gourmet (6).png"
+      ]
+    },
+    {
+      "titulo": "Quiosque Cafeteria Park Shopping",
+      "categoria": "Comercial",
+      "capa": "Projetos/inovacafe/Imagens/inovacafe (1).jpg",
+      "pdf": null,
+      "imagens": [
+        "Projetos/inovacafe/Imagens/inovacafe (1).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (2).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (3).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (4).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (5).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (6).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (7).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (8).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (9).jpg",
+        "Projetos/inovacafe/Imagens/inovacafe (10).jpg"
+      ]
+    },
+    {
+      "titulo": "Residência em Ponte Alta",
+      "categoria": "Residencial",
+      "capa": "Projetos/residenciaPonteAlta/Imagens/pontealta (1).jpg",
+      "pdf": "Projetos/residenciaPonteAlta/Pdf/Projeto.pdf",
+      "imagens": [
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (1).jpg",
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (2).jpg",
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (3).jpg",
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (4).jpg",
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (5).jpg",
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (6).jpg",
+        "Projetos/residenciaPonteAlta/Imagens/pontealta (7).jpg"
+      ]
+    }
+  ]
+}

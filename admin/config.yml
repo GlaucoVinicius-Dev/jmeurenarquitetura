@@ -1,0 +1,27 @@
+backend:
+  name: git-gateway
+  branch: main # Branch to update (optional; defaults to master)
+
+# This enables Identity (login) for Netlify
+local_backend: true
+
+media_folder: "Projetos" # Pasta onde imagens/pdfs serão salvos
+public_folder: "Projetos"
+
+collections:
+  - name: "configuracoes"
+    label: "Conteúdo do Site"
+    files:
+      - file: "data/projetos.json"
+        label: "Projetos"
+        name: "projetos_json"
+        fields:
+          - label: "Lista de Projetos"
+            name: "projetos"
+            widget: "list"
+            fields:
+              - {label: "Título", name: "titulo", widget: "string"}
+              - {label: "Categoria", name: "categoria", widget: "select", options: ["Residencial", "Comercial", "Interiores"]}
+              - {label: "Capa do Projeto", name: "capa", widget: "image"}
+              - {label: "Arquivo PDF", name: "pdf", widget: "file", required: false}
+              - {label: "Fotos da Galeria", name: "imagens", widget: "list", field: {label: "Foto", name: "foto", widget: "image"}}
