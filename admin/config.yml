@@ -22,6 +22,7 @@ collections:
             fields:
               - {label: "Título", name: "titulo", widget: "string"}
               - {label: "Categoria", name: "categoria", widget: "select", options: ["Residencial", "Comercial", "Interiores"]}
+              - {label: "Descrição / Memorial", name: "descricao", widget: "text", required: false}
               - {label: "Capa do Projeto", name: "capa", widget: "image"}
               - {label: "Arquivo PDF", name: "pdf", widget: "file", required: false}
               - {label: "Fotos da Galeria", name: "imagens", widget: "list", field: {label: "Foto", name: "foto", widget: "image"}}

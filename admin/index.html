@@ -1,15 +1,2282 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="pt-BR">
+<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <title>Painel de Controle - J.M Arquitetura</title>
-    <!-- Include the identity widget for Netlify/Vercel Auth -->
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  </head>
-  <body>
-    <!-- Include the script that builds the page and powers Decap CMS -->
-    <script src="https://unpkg.com/decap-cms@^3.1.2/dist/decap-cms.js"></script>
-  </body>
+    <title>J.M Studio Admin — Gestão de Portfólio &amp; Projetos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        :root {
+            --paper: #F4EFE7;
+            --paper-2: #ECE5D9;
+            --paper-3: #E2D9CA;
+            --white: #FFFFFF;
+            --ink: #1A1714;
+            --ink-2: #2A2520;
+            --ink-3: #3A332C;
+            --graphite: #5A5249;
+            --terra: #C24A33;
+            --terra-ink: #A63F2B;
+            --band: #A9412D;
+            --clay: #E59A82;
+            --ok: #2D6A4F;
+            --ok-bg: rgba(45, 106, 79, 0.1);
+            --warn: #B5651D;
+            --danger: #B91C1C;
+            --line: rgba(26, 23, 20, 0.12);
+            --line-strong: rgba(26, 23, 20, 0.22);
+            --f-display: 'Instrument Serif', Georgia, serif;
+            --f-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            --f-mono: 'IBM Plex Mono', monospace;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            min-height: 100%;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: var(--f-sans);
+            -webkit-font-smoothing: antialiased;
+        }
+        button, input, select, textarea { font: inherit; color: inherit; }
+        button { cursor: pointer; }
+        [hidden] { display: none !important; }
+
+        /* =========================================================
+           1. TELA DE LOGIN SPLIT-SCREEN (Inspiração: incident.io & Sprig no Mobbin)
+           ========================================================= */
+        .login-screen {
+            height: 100vh;
+            height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1.08fr 1fr;
+            grid-template-rows: 100%;
+            background: var(--paper);
+        }
+        @media (max-width: 920px) {
+            .login-screen {
+                grid-template-columns: 1fr;
+                overflow-y: auto;
+            }
+            .login-showcase { display: none !important; }
+        }
+
+        .login-showcase {
+            position: relative;
+            height: 100%;
+            max-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: clamp(28px, 3.5vw, 48px);
+            background: #14110E;
+            color: var(--paper);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .login-showcase-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+            background: #14110E;
+        }
+        .login-showcase-bg img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 48%;
+            opacity: 0;
+            transform: scale(1.03);
+            transition: opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1), transform 8s ease-out;
+            pointer-events: none;
+            display: block;
+        }
+        .login-showcase-bg img.is-active {
+            opacity: 0.44;
+            transform: scale(1.08);
+        }
+        .login-showcase::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(180deg, rgba(20, 17, 14, 0.72) 0%, rgba(20, 17, 14, 0.35) 45%, rgba(20, 17, 14, 0.88) 100%);
+            pointer-events: none;
+        }
+        .login-showcase > * { position: relative; z-index: 2; }
+
+        .showcase-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .brand-monogram {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1px solid rgba(244, 239, 231, 0.35);
+            display: grid;
+            place-items: center;
+            font-family: var(--f-display);
+            font-size: 1.35rem;
+            color: var(--clay);
+            background: rgba(26, 23, 20, 0.45);
+            backdrop-filter: blur(8px);
+        }
+        .brand-meta {
+            display: flex;
+            flex-direction: column;
+        }
+        .brand-meta strong {
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+        .brand-meta span {
+            font-size: 0.78rem;
+            opacity: 0.72;
+        }
+
+        .showcase-quote-box {
+            max-width: 520px;
+            margin: auto 0;
+        }
+        .showcase-eyebrow {
+            font-family: var(--f-mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--clay);
+            margin-bottom: 14px;
+            display: block;
+        }
+        .showcase-quote {
+            font-family: var(--f-display);
+            font-size: clamp(2.8rem, 4.4vw, 4.5rem);
+            line-height: 0.96;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+        }
+        .showcase-quote em {
+            color: var(--clay);
+            font-style: italic;
+        }
+        .showcase-sub {
+            margin-top: 18px;
+            font-size: 0.98rem;
+            line-height: 1.6;
+            color: rgba(244, 239, 231, 0.78);
+            max-width: 44ch;
+        }
+
+        /* Cartão glassmorphism estilo Sprig (Mobbin) */
+        .showcase-glass-card {
+            background: rgba(244, 239, 231, 0.1);
+            border: 1px solid rgba(244, 239, 231, 0.22);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 10px;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .glass-info span {
+            display: block;
+            font-family: var(--f-mono);
+            font-size: 0.66rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--clay);
+            margin-bottom: 4px;
+        }
+        .glass-info strong {
+            font-family: var(--f-display);
+            font-size: 1.55rem;
+            font-weight: 400;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 320px;
+            line-height: 1.2;
+        }
+        .glass-stats {
+            display: flex;
+            gap: 18px;
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            color: rgba(244, 239, 231, 0.85);
+            flex-shrink: 0;
+        }
+
+        /* Coluna direita do Login */
+        .login-form-col {
+            position: relative;
+            height: 100%;
+            max-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: clamp(24px, 3.5vw, 44px);
+            background: var(--paper);
+            box-sizing: border-box;
+        }
+        .login-form-col::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(26, 23, 20, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(26, 23, 20, 0.04) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 85%);
+        }
+        .login-form-col > * { position: relative; z-index: 1; }
+
+        .login-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-site-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-decoration: none;
+            color: var(--graphite);
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s var(--ease);
+        }
+        .back-site-link:hover {
+            background: var(--ink);
+            color: var(--paper);
+            border-color: var(--ink);
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 410px;
+            margin: auto;
+            background: var(--white);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: clamp(22px, 2.8vw, 36px);
+            box-shadow: 0 20px 50px rgba(26, 23, 20, 0.08);
+            box-sizing: border-box;
+        }
+        .login-box-head {
+            margin-bottom: 26px;
+        }
+        .login-box-head .eyebrow {
+            font-family: var(--f-mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--terra);
+            display: block;
+            margin-bottom: 6px;
+        }
+        .login-box-head h1 {
+            font-family: var(--f-display);
+            font-size: 2.35rem;
+            font-weight: 400;
+            line-height: 1.05;
+        }
+        .login-box-head p {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--graphite);
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+        .field label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--f-mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--graphite);
+            margin-bottom: 6px;
+        }
+        .input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-wrap input,
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--line-strong);
+            border-radius: 8px;
+            background: var(--paper);
+            color: var(--ink);
+            font-size: 0.94rem;
+            transition: border-color 0.25s, background-color 0.25s, box-shadow 0.25s;
+        }
+        .input-wrap input:focus,
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--terra);
+            background: var(--white);
+            box-shadow: 0 0 0 3px rgba(194, 74, 51, 0.12);
+        }
+        .pw-toggle {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: 0;
+            color: var(--graphite);
+            padding: 4px 6px;
+            font-size: 0.85rem;
+        }
+
+        .login-error {
+            background: rgba(185, 28, 28, 0.08);
+            border: 1px solid rgba(185, 28, 28, 0.25);
+            color: var(--danger);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            margin-bottom: 14px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 46px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--ink);
+            color: var(--paper);
+            font-weight: 500;
+            font-size: 0.92rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background-color 0.3s var(--ease), transform 0.2s;
+        }
+        .btn-primary:hover {
+            background: var(--terra-ink);
+            transform: translateY(-1px);
+        }
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 18px 0;
+            color: var(--graphite);
+            font-family: var(--f-mono);
+            font-size: 0.66rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--line);
+        }
+        .btn-quick-access {
+            width: 100%;
+            height: 42px;
+            border: 1px solid var(--line-strong);
+            border-radius: 8px;
+            background: var(--paper);
+            color: var(--ink);
+            font-size: 0.86rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s var(--ease);
+        }
+        .btn-quick-access:hover {
+            border-color: var(--terra);
+            color: var(--terra-ink);
+            background: var(--white);
+        }
+        .login-hint {
+            margin-top: 16px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: var(--paper-2);
+            font-family: var(--f-mono);
+            font-size: 0.68rem;
+            color: var(--graphite);
+            line-height: 1.5;
+        }
+
+        /* =========================================================
+           2. DASHBOARD PRINCIPAL DO ESTÚDIO (Framer CMS / Supabase Style)
+           ========================================================= */
+        .admin-app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 260px minmax(0, 1fr);
+            background: var(--paper);
+        }
+        @media (max-width: 960px) {
+            .admin-app { grid-template-columns: 1fr; }
+            .admin-sidebar {
+                position: sticky;
+                top: 0;
+                z-index: 40;
+                border-right: 0 !important;
+                border-bottom: 1px solid var(--line);
+            }
+        }
+
+        .admin-sidebar {
+            background: var(--paper-2);
+            border-right: 1px solid var(--line);
+            padding: 24px 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 24px;
+        }
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 8px 18px;
+            border-bottom: 1px solid var(--line);
+        }
+        .sidebar-brand img {
+            height: 36px;
+            width: auto;
+        }
+        .sidebar-brand-text strong {
+            display: block;
+            font-family: var(--f-display);
+            font-size: 1.25rem;
+            font-weight: 400;
+            line-height: 1;
+        }
+        .sidebar-brand-text span {
+            font-family: var(--f-mono);
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--terra-ink);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 16px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 14px;
+            border-radius: 8px;
+            border: 0;
+            background: transparent;
+            color: var(--ink-3);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.25s var(--ease);
+        }
+        .nav-item-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-item i {
+            width: 18px;
+            text-align: center;
+            color: var(--graphite);
+            transition: color 0.25s;
+        }
+        .nav-item:hover {
+            background: rgba(26, 23, 20, 0.05);
+            color: var(--ink);
+        }
+        .nav-item.is-active {
+            background: var(--ink);
+            color: var(--paper);
+        }
+        .nav-item.is-active i {
+            color: var(--clay);
+        }
+        .nav-badge {
+            font-family: var(--f-mono);
+            font-size: 0.66rem;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(26, 23, 20, 0.08);
+        }
+        .nav-item.is-active .nav-badge {
+            background: rgba(244, 239, 231, 0.18);
+            color: var(--paper);
+        }
+
+        .sidebar-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.84rem;
+            color: var(--ink-3);
+            border: 1px solid var(--line);
+            background: var(--paper);
+            transition: all 0.25s;
+        }
+        .sidebar-link:hover {
+            border-color: var(--ink);
+            color: var(--ink);
+        }
+
+        /* Área de Conteúdo Principal */
+        .admin-main {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .admin-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            background: rgba(244, 239, 231, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--line);
+            padding: 16px clamp(20px, 3vw, 40px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .topbar-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            color: var(--graphite);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+            box-shadow: 0 0 0 4px var(--ok-bg);
+        }
+        .status-dot.is-dirty {
+            background: var(--warn);
+            box-shadow: 0 0 0 4px rgba(181, 101, 29, 0.15);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-pill {
+            height: 38px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 1px solid var(--line-strong);
+            background: var(--white);
+            color: var(--ink);
+            font-size: 0.84rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s var(--ease);
+        }
+        .btn-pill:hover {
+            border-color: var(--ink);
+            background: var(--paper-2);
+        }
+        .btn-pill.is-terra {
+            background: var(--terra);
+            color: var(--white);
+            border-color: var(--terra);
+        }
+        .btn-pill.is-terra:hover {
+            background: var(--terra-ink);
+            border-color: var(--terra-ink);
+        }
+        .btn-pill.is-ink {
+            background: var(--ink);
+            color: var(--paper);
+            border-color: var(--ink);
+        }
+        .btn-pill.is-ink:hover {
+            background: var(--terra-ink);
+            border-color: var(--terra-ink);
+        }
+
+        .admin-content {
+            padding: clamp(24px, 3vw, 40px);
+            max-width: 1440px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* KPIs */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        @media (max-width: 1024px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+        .kpi-card {
+            background: var(--white);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .kpi-label {
+            font-family: var(--f-mono);
+            font-size: 0.66rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--graphite);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kpi-label i { color: var(--terra); font-size: 0.85rem; }
+        .kpi-val {
+            font-family: var(--f-display);
+            font-size: 2.5rem;
+            line-height: 1;
+            color: var(--ink);
+        }
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: var(--graphite);
+        }
+
+        /* Barra de ferramentas de Projetos */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+            background: var(--white);
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+        }
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 220px;
+            max-width: 380px;
+        }
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--graphite);
+            font-size: 0.85rem;
+        }
+        .search-box input {
+            width: 100%;
+            height: 36px;
+            padding: 0 12px 0 34px;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            font-size: 0.88rem;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--terra);
+            background: var(--white);
+        }
+        .filter-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .f-pill {
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            font-size: 0.8rem;
+            color: var(--graphite);
+            transition: all 0.2s;
+        }
+        .f-pill.is-active {
+            background: var(--ink);
+            color: var(--paper);
+            border-color: var(--ink);
+        }
+
+        /* Grade de Cards de Projetos no Admin */
+        .projects-admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 20px;
+        }
+        .p-card {
+            background: var(--white);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s;
+        }
+        .p-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 40px rgba(26, 23, 20, 0.08);
+            border-color: var(--line-strong);
+        }
+        .p-card-media {
+            position: relative;
+            aspect-ratio: 16 / 10;
+            background: var(--paper-3);
+            overflow: hidden;
+        }
+        .p-card-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s var(--ease);
+        }
+        .p-card:hover .p-card-media img {
+            transform: scale(1.04);
+        }
+        .p-card-badges {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+        .badge-cat {
+            background: rgba(244, 239, 231, 0.94);
+            color: var(--ink);
+            font-family: var(--f-mono);
+            font-size: 0.64rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: 500;
+        }
+        .badge-order {
+            background: rgba(26, 23, 20, 0.8);
+            color: var(--paper);
+            font-family: var(--f-mono);
+            font-size: 0.66rem;
+            padding: 4px 9px;
+            border-radius: 999px;
+        }
+        .p-card-body {
+            padding: 16px 18px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .p-card-title {
+            font-family: var(--f-display);
+            font-size: 1.5rem;
+            font-weight: 400;
+            line-height: 1.1;
+        }
+        .p-card-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            font-family: var(--f-mono);
+            font-size: 0.68rem;
+            color: var(--graphite);
+        }
+        .p-card-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .p-card-meta .has-pdf { color: var(--ok); }
+        .p-card-meta .no-pdf { color: var(--graphite); opacity: 0.65; }
+
+        .p-card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--line);
+        }
+        .order-btns {
+            display: flex;
+            gap: 4px;
+        }
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            color: var(--ink-3);
+            display: grid;
+            place-items: center;
+            font-size: 0.78rem;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover:not(:disabled) {
+            background: var(--ink);
+            color: var(--paper);
+            border-color: var(--ink);
+        }
+        .icon-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .icon-btn.is-danger:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: var(--white);
+        }
+        .edit-btns {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .btn-smEdit {
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 6px;
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: var(--paper);
+            font-size: 0.78rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn-smEdit:hover {
+            background: var(--terra-ink);
+            border-color: var(--terra-ink);
+        }
+
+        /* =========================================================
+           3. MODAL / DRAWER DE EDIÇÃO E CADASTRO DE PROJETO
+           ========================================================= */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(20, 17, 14, 0.62);
+            backdrop-filter: blur(6px);
+            display: flex;
+            justify-content: flex-end;
+        }
+        .editor-drawer {
+            width: min(920px, 100vw);
+            height: 100vh;
+            background: var(--paper);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -20px 0 60px rgba(0, 0, 0, 0.25);
+            animation: slideIn 0.35s var(--ease);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .drawer-head {
+            padding: 18px 28px;
+            background: var(--white);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .drawer-head h2 {
+            font-family: var(--f-display);
+            font-size: 1.85rem;
+            font-weight: 400;
+        }
+        .drawer-body {
+            padding: 28px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .drawer-foot {
+            padding: 16px 28px;
+            background: var(--white);
+            border-top: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 640px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+        .section-card {
+            background: var(--white);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .section-card-title {
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--terra-ink);
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Dropzone para Fotos e PDF */
+        .dropzone {
+            border: 1.5px dashed var(--line-strong);
+            border-radius: 8px;
+            background: var(--paper);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.25s;
+            cursor: pointer;
+        }
+        .dropzone:hover, .dropzone.is-dragover {
+            border-color: var(--terra);
+            background: rgba(194, 74, 51, 0.05);
+        }
+        .dropzone i {
+            font-size: 1.4rem;
+            color: var(--terra);
+            margin-bottom: 8px;
+        }
+        .dropzone p {
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+        .dropzone span {
+            font-size: 0.76rem;
+            color: var(--graphite);
+        }
+
+        /* Grade de Miniaturas da Galeria do Projeto */
+        .thumbs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .thumb-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            background: var(--paper-2);
+            aspect-ratio: 4 / 3;
+        }
+        .thumb-item.is-cover {
+            border-color: var(--terra);
+        }
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .thumb-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(20,17,14,0.65) 0%, transparent 45%, rgba(20,17,14,0.8) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .thumb-item:hover .thumb-overlay,
+        .thumb-item.is-cover .thumb-overlay {
+            opacity: 1;
+        }
+        .thumb-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-set-cover {
+            border: 0;
+            border-radius: 4px;
+            padding: 3px 7px;
+            font-family: var(--f-mono);
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            background: rgba(244, 239, 231, 0.92);
+            color: var(--ink);
+            font-weight: 500;
+        }
+        .thumb-item.is-cover .btn-set-cover {
+            background: var(--terra);
+            color: var(--white);
+        }
+        .btn-del-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            border: 0;
+            background: rgba(185, 28, 28, 0.9);
+            color: var(--white);
+            font-size: 0.7rem;
+            display: grid;
+            place-items: center;
+        }
+        .thumb-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .thumb-move-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            border: 0;
+            background: rgba(244, 239, 231, 0.88);
+            color: var(--ink);
+            font-size: 0.65rem;
+        }
+
+        /* Toast de Feedback */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 200;
+            background: var(--ink);
+            color: var(--paper);
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.22);
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s var(--ease);
+        }
+        .toast.is-on {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast i { color: var(--clay); }
+    </style>
+</head>
+<body>
+
+    <!-- =========================================================
+         1. PÁGINA DE LOGIN AUTORAL (SPLIT-SCREEN)
+         ========================================================= -->
+    <section class="login-screen" id="loginScreen">
+        <div class="login-showcase">
+            <div class="login-showcase-bg">
+                <img src="../Projetos/apart314norte/Imagens/314nr (1).jpg" id="loginBgImg1" class="is-active" alt="Destaque J.Meuren Arquitetura">
+                <img src="../Projetos/apart314norte/Imagens/314nr (1).jpg" id="loginBgImg2" alt="Destaque J.Meuren Arquitetura">
+            </div>
+
+            <div class="showcase-top">
+                <a href="../index.html" class="brand-badge">
+                    <span class="brand-monogram">J.M</span>
+                    <span class="brand-meta">
+                        <strong>J.Meuren Arquitetura</strong>
+                        <span>Studio &amp; Portfólio CMS</span>
+                    </span>
+                </a>
+                <span style="font-family: var(--f-mono); font-size: 0.7rem; opacity: 0.75;">BRASÍLIA • DF</span>
+            </div>
+
+            <div class="showcase-quote-box">
+                <span class="showcase-eyebrow">Painel de Curadoria &amp; Acervo</span>
+                <h2 class="showcase-quote">Arquitetura é <em>música edificada.</em></h2>
+                <p class="showcase-sub">Gerencie projetos autorais, fotografias de alta resolução, memoriais descritivos, pranchas técnicas em PDF e a ambientação sonora do portfólio.</p>
+            </div>
+
+            <div class="showcase-glass-card">
+                <div class="glass-info">
+                    <span id="loginSlideCat">RESIDENCIAL • DESTAQUE</span>
+                    <strong id="loginSlideTitle">Apartamento 314 Norte</strong>
+                </div>
+                <div class="glass-stats">
+                    <span id="loginStatProjects">07 Projetos</span>
+                    <span>•</span>
+                    <span id="loginStatPhotos">46 Fotos</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="login-form-col">
+            <div class="login-top-bar">
+                <span style="font-family: var(--f-mono); font-size: 0.7rem; color: var(--graphite);">ACESSO RESTRITO • ADMIN</span>
+                <a href="../index.html" class="back-site-link">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Site
+                </a>
+            </div>
+
+            <div class="login-box" id="loginBox">
+                <div class="login-box-head">
+                    <span class="eyebrow">Bem-vindo de volta</span>
+                    <h1>Acesso ao Estúdio</h1>
+                    <p>Entre com suas credenciais para gerenciar os projetos e mídias do site.</p>
+                </div>
+
+                <div class="login-error" id="loginError" hidden>
+                    Credenciais inválidas. Verifique o usuário e a senha.
+                </div>
+
+                <form id="loginForm">
+                    <div class="field">
+                        <label for="loginEmail">E-mail ou Usuário</label>
+                        <input type="text" id="loginEmail" value="jmeuren.arq@gmail.com" placeholder="jmeuren.arq@gmail.com" required autocomplete="username">
+                    </div>
+
+                    <div class="field">
+                        <label for="loginPass">
+                            <span>Senha do Painel</span>
+                        </label>
+                        <div class="input-wrap">
+                            <input type="password" id="loginPass" value="jmeuren2026" placeholder="••••••••••••" required autocomplete="current-password">
+                            <button type="button" class="pw-toggle" id="pwToggle" aria-label="Mostrar senha">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <span>Entrar no Painel de Projetos</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <div class="login-divider">ou acesso imediato</div>
+
+                <button type="button" class="btn-quick-access" id="btnQuickLogin">
+                    <i class="fas fa-bolt"></i>
+                    <span>Entrar com 1 Clique (Ambiente Local)</span>
+                </button>
+
+                <div class="login-hint">
+                    <strong>Credenciais padrão:</strong><br>
+                    Usuário: <code>jmeuren.arq@gmail.com</code> | Senha: <code>jmeuren2026</code><br>
+                    <em>(Você pode alterar a senha na aba Configurações do painel).</em>
+                </div>
+            </div>
+
+            <div style="text-align: center; font-family: var(--f-mono); font-size: 0.68rem; color: var(--graphite);">
+                J.Meuren | Arquitetura • Interiores — Sistema Integrado a <code>data/projetos.json</code>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         2. PAINEL ADMINISTRATIVO (DASHBOARD)
+         ========================================================= -->
+    <div class="admin-app" id="adminApp" hidden>
+        <aside class="admin-sidebar">
+            <div>
+                <div class="sidebar-brand">
+                    <img src="../assets/LogoJmeuren-removebg.png" alt="J.Meuren">
+                    <div class="sidebar-brand-text">
+                        <strong>J.Meuren</strong>
+                        <span>Studio Admin</span>
+                    </div>
+                </div>
+
+                <nav class="sidebar-nav">
+                    <button type="button" class="nav-item is-active" data-tab="projects">
+                        <span class="nav-item-left"><i class="fas fa-layer-group"></i> Projetos do Portfólio</span>
+                        <span class="nav-badge" id="navCountBadge">07</span>
+                    </button>
+                    <button type="button" class="nav-item" id="btnSidebarNew">
+                        <span class="nav-item-left"><i class="fas fa-plus-circle"></i> Cadastrar Novo Projeto</span>
+                    </button>
+                    <button type="button" class="nav-item" data-tab="sound">
+                        <span class="nav-item-left"><i class="fas fa-music"></i> Som Ambiente (Site)</span>
+                        <span class="nav-badge">Áudio</span>
+                    </button>
+                    <button type="button" class="nav-item" data-tab="settings">
+                        <span class="nav-item-left"><i class="fas fa-sliders-h"></i> Backup, Senha &amp; GitHub</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <a href="../index.html" target="_blank" class="sidebar-link">
+                    <span>Ver Site Principal</span>
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+                <button type="button" class="sidebar-link" id="btnLogout" style="width: 100%; cursor: pointer;">
+                    <span>Encerrar Sessão</span>
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <div class="admin-main">
+            <header class="admin-topbar">
+                <div class="topbar-status">
+                    <span class="status-dot" id="syncDot"></span>
+                    <span id="syncText">Sincronizado com <code>data/projetos.json</code></span>
+                </div>
+
+                <div class="topbar-actions">
+                    <button type="button" class="btn-pill" id="btnDownloadJson" title="Baixar cópia do arquivo data/projetos.json">
+                        <i class="fas fa-download"></i> Baixar JSON
+                    </button>
+                    <button type="button" class="btn-pill is-ink" id="btnNewProject">
+                        <i class="fas fa-plus"></i> Novo Projeto
+                    </button>
+                    <button type="button" class="btn-pill is-terra" id="btnSaveAll">
+                        <i class="fas fa-save"></i> Salvar Alterações no Site
+                    </button>
+                </div>
+            </header>
+
+            <!-- ABA 1: PROJETOS -->
+            <main class="admin-content" id="tabProjects">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <span class="kpi-label">Total de Projetos <i class="fas fa-building"></i></span>
+                        <strong class="kpi-val" id="kpiTotalProjects">07</strong>
+                        <span class="kpi-sub">Ativos no Hero e Esteira 3D</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Acervo Fotográfico <i class="fas fa-camera"></i></span>
+                        <strong class="kpi-val" id="kpiTotalPhotos">46</strong>
+                        <span class="kpi-sub">Imagens de alta resolução</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Pranchas em PDF <i class="fas fa-file-pdf"></i></span>
+                        <strong class="kpi-val" id="kpiTotalPdfs">06</strong>
+                        <span class="kpi-sub">Memoriais e plantas técnicas</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Som Ambiente <i class="fas fa-volume-up"></i></span>
+                        <strong class="kpi-val" id="kpiSoundMode" style="font-size: 1.55rem; padding-top: 8px;">Sintetizador</strong>
+                        <span class="kpi-sub">Botão "Som: Ativo" no topo</span>
+                    </div>
+                </div>
+
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="search" id="searchInput" placeholder="Buscar projeto por título ou categoria...">
+                    </div>
+                    <div class="filter-pills" id="adminFilterPills">
+                        <button type="button" class="f-pill is-active" data-cat="all">Todos</button>
+                        <button type="button" class="f-pill" data-cat="Residencial">Residencial</button>
+                        <button type="button" class="f-pill" data-cat="Comercial">Comercial</button>
+                        <button type="button" class="f-pill" data-cat="Interiores">Interiores</button>
+                    </div>
+                </div>
+
+                <div class="projects-admin-grid" id="projectsAdminGrid"></div>
+            </main>
+
+            <!-- ABA 2: SOM AMBIENTE ("MÚSICA EDIFICADA") -->
+            <section class="admin-content" id="tabSound" hidden>
+                <div class="section-card" style="max-width: 780px;">
+                    <div class="section-card-title">
+                        <span>Configuração do Botão "SOM" do Portfólio</span>
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <h2 style="font-family: var(--f-display); font-size: 2.1rem; font-weight: 400; margin-bottom: 10px;">
+                        Ambientação Sonora ("Música Edificada")
+                    </h2>
+                    <p style="color: var(--graphite); font-size: 0.94rem; line-height: 1.6; margin-bottom: 20px;">
+                        O botão <strong>SOM</strong> no cabeçalho do site já possui um <strong>Sintetizador Ambiente Arquitetônico (Web Audio API)</strong> integrado que gera acordes suaves de piano/pad (<em>Fmaj9, Dm9, Am9, Cmaj9</em>) sem precisar de nenhum arquivo externo. Se você preferir usar uma música <code>.mp3</code> própria de fundo, basta enviar o arquivo abaixo!
+                    </p>
+
+                    <div style="background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-family:var(--f-mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--terra);">
+                                <i class="fas fa-volume-up"></i> Trilha Ativa no Botão "SOM" do Site
+                            </span>
+                            <code id="audioActiveBadge" style="font-size:0.75rem; color:var(--ink);">assets/ambient.mp3</code>
+                        </div>
+                        <audio id="adminAudioPreview" controls src="../assets/ambient.mp3" style="width: 100%; height: 40px;"></audio>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+                        <button type="button" class="btn-pill is-ink" id="btnTestSynth">
+                            <i class="fas fa-play"></i> Ouvir Sintetizador Alternativo
+                        </button>
+                        <button type="button" class="btn-pill" id="btnClearCustomAudio">
+                            <i class="fas fa-undo"></i> Restaurar assets/ambient.mp3
+                        </button>
+                    </div>
+
+                    <div class="field">
+                        <label>Caminho do Arquivo de Música Personalizado (.mp3 / .ogg)</label>
+                        <input type="text" id="customAudioInput" value="assets/ambient.mp3" placeholder="Ex: assets/ambient.mp3">
+                    </div>
+
+                    <div class="dropzone" id="audioDropzone" style="margin-top: 12px;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Clique ou arraste um arquivo <code>.mp3</code> para enviar para <code>assets/</code></p>
+                        <span>O arquivo será salvo automaticamente na pasta assets/ e vinculado ao botão SOM do site</span>
+                        <input type="file" id="audioFileInput" accept="audio/*" hidden>
+                    </div>
+
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <button type="button" class="btn-pill is-terra" id="btnSaveAudioConfig">
+                            <i class="fas fa-save"></i> Salvar Configuração de Som
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 3: CONFIGURAÇÕES, BACKUP & SENHA -->
+            <section class="admin-content" id="tabSettings" hidden>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
+                    <div class="section-card">
+                        <div class="section-card-title">
+                            <span>Segurança do Painel</span>
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3 style="font-family: var(--f-display); font-size: 1.65rem; font-weight: 400; margin-bottom: 14px;">Alterar Credenciais de Login</h3>
+                        <div class="field">
+                            <label>E-mail / Usuário do Administrador</label>
+                            <input type="text" id="cfgAdminUser" value="jmeuren.arq@gmail.com">
+                        </div>
+                        <div class="field">
+                            <label>Nova Senha</label>
+                            <input type="password" id="cfgAdminPass" placeholder="Digite a nova senha">
+                        </div>
+                        <button type="button" class="btn-pill is-ink" id="btnSaveCredentials">
+                            <i class="fas fa-check"></i> Atualizar Senha
+                        </button>
+                    </div>
+
+                    <div class="section-card">
+                        <div class="section-card-title">
+                            <span>Importar / Exportar Acervo</span>
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3 style="font-family: var(--f-display); font-size: 1.65rem; font-weight: 400; margin-bottom: 14px;">Backup de <code>data/projetos.json</code></h3>
+                        <p style="font-size: 0.88rem; color: var(--graphite); line-height: 1.5; margin-bottom: 16px;">
+                            Todas as alterações salvas aqui atualizam diretamente o arquivo <code>data/projetos.json</code>. Você também pode exportar um backup ou importar um arquivo JSON existente.
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn-pill is-ink" id="btnExportBackup">
+                                <i class="fas fa-download"></i> Exportar projetos.json
+                            </button>
+                            <label class="btn-pill" style="cursor: pointer;">
+                                <i class="fas fa-upload"></i> Importar JSON
+                                <input type="file" id="importJsonInput" accept=".json" hidden>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         3. GAVETA (DRAWER) DE CADASTRO / EDIÇÃO DE PROJETO
+         ========================================================= -->
+    <div class="modal-backdrop" id="editorModal" hidden>
+        <div class="editor-drawer">
+            <div class="drawer-head">
+                <div>
+                    <span style="font-family: var(--f-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--terra);" id="drawerSubtitle">EDITANDO PROJETO</span>
+                    <h2 id="drawerTitle">Apartamento 314 Norte</h2>
+                </div>
+                <button type="button" class="icon-btn" id="btnCloseDrawer" aria-label="Fechar editor">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="drawer-body">
+                <div class="section-card">
+                    <div class="section-card-title">
+                        <span>1. Informações Principais</span>
+                        <span>Ficha Técnica</span>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="field">
+                            <label for="fTitulo">Título do Projeto *</label>
+                            <input type="text" id="fTitulo" placeholder="Ex: Apartamento 314 Norte" required>
+                        </div>
+                        <div class="field">
+                            <label for="fCategoria">Categoria *</label>
+                            <select id="fCategoria">
+                                <option value="Residencial">Residencial</option>
+                                <option value="Comercial">Comercial</option>
+                                <option value="Interiores">Interiores</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="field">
+                            <label for="fFolder">Pasta do Projeto (em <code>Projetos/</code>)</label>
+                            <input type="text" id="fFolder" placeholder="Ex: apart314norte">
+                        </div>
+                        <div class="field">
+                            <label for="fCapa">Foto de Capa Principal</label>
+                            <input type="text" id="fCapa" placeholder="Selecione uma foto abaixo com ★ Capa ou digite o caminho">
+                        </div>
+                    </div>
+                    <div class="field" style="margin-bottom: 0;">
+                        <label for="fDescricao">Descrição / Memorial Descritivo (Opcional)</label>
+                        <textarea id="fDescricao" rows="2" placeholder="Breve descrição conceitual, materiais utilizados, marcenaria e iluminação..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Galeria de Fotos -->
+                <div class="section-card">
+                    <div class="section-card-title">
+                        <span>2. Galeria de Fotografias (<strong id="drawerPhotoCount">0</strong> fotos)</span>
+                        <span>Clique em "★ Capa" na foto desejada</span>
+                    </div>
+
+                    <div class="dropzone" id="photosDropzone">
+                        <i class="fas fa-images"></i>
+                        <p>Arraste fotos aqui ou clique para selecionar do computador</p>
+                        <span>As fotos são salvas automaticamente em <code>Projetos/<span id="lblFolderImgs">pasta</span>/Imagens/</code></span>
+                        <input type="file" id="photosFileInput" accept="image/*" multiple hidden>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <input type="text" id="manualPhotoInput" placeholder="Ou cole o caminho de uma imagem (ex: Projetos/meuProjeto/Imagens/foto1.jpg)" style="flex:1; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--paper); font-size: 0.84rem;">
+                        <button type="button" class="btn-pill" id="btnAddManualPhoto" style="height: 36px;">+ Adicionar Caminho</button>
+                    </div>
+
+                    <div class="thumbs-grid" id="drawerThumbsGrid"></div>
+                </div>
+
+                <!-- Prancha Técnica PDF -->
+                <div class="section-card">
+                    <div class="section-card-title">
+                        <span>3. Prancha Técnica / Memorial em PDF</span>
+                        <span>Opcional</span>
+                    </div>
+
+                    <div class="form-grid-2" style="align-items: end;">
+                        <div class="field" style="margin-bottom: 0;">
+                            <label for="fPdf">Caminho do Arquivo PDF</label>
+                            <input type="text" id="fPdf" placeholder="Ex: Projetos/apart314norte/Pdf/projeto.pdf">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <label class="btn-pill is-ink" style="cursor: pointer; flex: 1; justify-content: center;">
+                                <i class="fas fa-file-upload"></i> Enviar Arquivo PDF
+                                <input type="file" id="pdfFileInput" accept=".pdf,application/pdf" hidden>
+                            </label>
+                            <button type="button" class="btn-pill" id="btnClearPdf" title="Remover PDF deste projeto">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="drawer-foot">
+                <button type="button" class="btn-pill" id="btnCancelDrawer">Cancelar</button>
+                <button type="button" class="btn-pill is-terra" id="btnConfirmProject">
+                    <i class="fas fa-check"></i> Confirmar e Salvar Projeto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg">Salvo com sucesso!</span></div>
+
+    <script>
+    (function () {
+        const $ = (s, r = document) => r.querySelector(s);
+        const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+        const pad = n => String(n).padStart(2, '0');
+        const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        let projects = [];
+        let customAudio = 'assets/ambient.mp3';
+        let filterCat = 'all';
+        let searchQuery = '';
+        let editingIdx = -1; // -1 = novo projeto
+        let draftImages = [];
+        let isDirty = false;
+
+        function resolveImgUrl(p) {
+            if (!p) return '';
+            if (p.startsWith('data:') || p.startsWith('http://') || p.startsWith('https://') || p.startsWith('../')) return p;
+            return '../' + encodeURI(p);
+        }
+
+        function slugifyFolder(title) {
+            return String(title || 'novoProjeto')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '')
+                .trim() || 'novoProjeto';
+        }
+
+        function showToast(msg) {
+            const t = $('#toast');
+            $('#toastMsg').textContent = msg;
+            t.classList.add('is-on');
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => t.classList.remove('is-on'), 3200);
+        }
+
+        function markDirty(dirty) {
+            isDirty = dirty;
+            const dot = $('#syncDot');
+            const txt = $('#syncText');
+            if (dirty) {
+                dot.classList.add('is-dirty');
+                txt.innerHTML = 'Alterações pendentes — clique em <strong>Salvar Alterações no Site</strong>';
+            } else {
+                dot.classList.remove('is-dirty');
+                txt.innerHTML = 'Sincronizado com <code>data/projetos.json</code>';
+            }
+        }
+
+        /* ---------- 1. AUTENTICAÇÃO E LOGIN ---------- */
+        const AUTH_KEY = 'jm_admin_session';
+        const CRED_USER_KEY = 'jm_admin_user';
+        const CRED_PASS_KEY = 'jm_admin_pass';
+
+        function getValidUser() { return localStorage.getItem(CRED_USER_KEY) || 'jmeuren.arq@gmail.com'; }
+        function getValidPass() { return localStorage.getItem(CRED_PASS_KEY) || 'jmeuren2026'; }
+
+        function enterDashboard() {
+            sessionStorage.setItem(AUTH_KEY, '1');
+            $('#loginScreen').hidden = true;
+            $('#adminApp').hidden = false;
+            renderDashboard();
+        }
+
+        $('#pwToggle').addEventListener('click', () => {
+            const inp = $('#loginPass');
+            const isPw = inp.type === 'password';
+            inp.type = isPw ? 'text' : 'password';
+            $('#pwToggle').innerHTML = isPw ? '<i class="far fa-eye-slash"></i>' : '<i class="far fa-eye"></i>';
+        });
+
+        $('#loginForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const u = $('#loginEmail').value.trim();
+            const p = $('#loginPass').value;
+            if ((u.toLowerCase() === getValidUser().toLowerCase() || u.toLowerCase() === 'admin') && p === getValidPass()) {
+                $('#loginError').hidden = true;
+                enterDashboard();
+            } else {
+                $('#loginError').hidden = false;
+                if (typeof gsap !== 'undefined') {
+                    gsap.fromTo('#loginBox', { x: -8 }, { x: 0, duration: 0.4, ease: 'elastic.out(2, 0.2)' });
+                }
+            }
+        });
+
+        $('#btnQuickLogin').addEventListener('click', () => enterDashboard());
+        $('#btnLogout').addEventListener('click', () => {
+            sessionStorage.removeItem(AUTH_KEY);
+            $('#adminApp').hidden = true;
+            $('#loginScreen').hidden = false;
+        });
+
+        /* ---------- 2. CARREGAMENTO DE DADOS ---------- */
+        async function loadData() {
+            try {
+                const res = await fetch('../data/projetos.json', { cache: 'no-cache' });
+                const data = await res.json();
+                projects = Array.isArray(data.projetos) ? data.projetos : [];
+                customAudio = data.musica || localStorage.getItem('jm_custom_audio') || 'assets/ambient.mp3';
+                $('#customAudioInput').value = customAudio;
+                if ($('#adminAudioPreview') && customAudio) {
+                    $('#adminAudioPreview').src = resolveImgUrl(customAudio);
+                }
+                if ($('#audioActiveBadge')) {
+                    $('#audioActiveBadge').textContent = customAudio || 'Sintetizador Web Audio';
+                }
+            } catch (e) {
+                console.error('Erro ao ler ../data/projetos.json:', e);
+                projects = [];
+            }
+
+            // Atualiza vitrine da tela de login
+            const totalPhotos = projects.reduce((acc, p) => acc + ((p.imagens && p.imagens.length) || 0), 0);
+            $('#loginStatProjects').textContent = `${pad(projects.length)} Projetos`;
+            $('#loginStatPhotos').textContent = `${pad(totalPhotos)} Fotos`;
+
+            // Slideshow suave com crossfade e tamanho padronizado na vitrine de login (zero layout shift)
+            if (projects.length > 0) {
+                let li = 0;
+                let activeId = 1;
+                const bg1 = $('#loginBgImg1');
+                const bg2 = $('#loginBgImg2');
+
+                setInterval(() => {
+                    if ($('#loginScreen').hidden) return;
+                    li = (li + 1) % projects.length;
+                    const p = projects[li];
+                    const cov = p.capa || (p.imagens && p.imagens[0]) || '';
+                    if (!cov) return;
+
+                    const nextUrl = resolveImgUrl(cov);
+                    const incoming = activeId === 1 ? bg2 : bg1;
+                    const outgoing = activeId === 1 ? bg1 : bg2;
+
+                    // Pré-carrega a imagem antes de aplicar no DOM para evitar qualquer reflow ou flash
+                    const pre = new Image();
+                    pre.onload = () => {
+                        incoming.src = nextUrl;
+                        incoming.classList.add('is-active');
+                        outgoing.classList.remove('is-active');
+                        activeId = activeId === 1 ? 2 : 1;
+                    };
+                    pre.src = nextUrl;
+
+                    $('#loginSlideCat').textContent = `${(p.categoria || 'Projeto').toUpperCase()} • DESTAQUE`;
+                    $('#loginSlideTitle').textContent = p.titulo;
+                }, 4800);
+            }
+
+            if (sessionStorage.getItem(AUTH_KEY) === '1') {
+                enterDashboard();
+            } else if (typeof gsap !== 'undefined') {
+                gsap.from('#loginBox', { opacity: 0, y: 24, duration: 0.75, ease: 'power3.out' });
+                gsap.from('.showcase-quote-box', { opacity: 0, y: 28, duration: 0.9, delay: 0.12, ease: 'power3.out' });
+            }
+        }
+
+        /* ---------- 3. RENDERIZAÇÃO DO DASHBOARD ---------- */
+        function renderDashboard() {
+            const totalPhotos = projects.reduce((acc, p) => acc + ((p.imagens && p.imagens.length) || 0), 0);
+            const totalPdfs = projects.filter(p => p.pdf && String(p.pdf).trim() !== '').length;
+
+            $('#navCountBadge').textContent = pad(projects.length);
+            $('#kpiTotalProjects').textContent = pad(projects.length);
+            $('#kpiTotalPhotos').textContent = pad(totalPhotos);
+            $('#kpiTotalPdfs').textContent = pad(totalPdfs);
+            $('#kpiSoundMode').textContent = customAudio ? 'MP3 Próprio' : 'Sintetizador';
+
+            const filtered = projects
+                .map((p, idx) => ({ p, idx }))
+                .filter(({ p }) => {
+                    const matchCat = filterCat === 'all' || p.categoria === filterCat;
+                    const q = searchQuery.toLowerCase();
+                    const matchQ = !q || (p.titulo || '').toLowerCase().includes(q) || (p.categoria || '').toLowerCase().includes(q) || (p.descricao || '').toLowerCase().includes(q);
+                    return matchCat && matchQ;
+                });
+
+            const grid = $('#projectsAdminGrid');
+            if (!filtered.length) {
+                grid.innerHTML = `<div class="section-card" style="grid-column: 1/-1; text-align:center; padding: 48px;">
+                    <p style="font-family: var(--f-display); font-size: 1.8rem;">Nenhum projeto encontrado</p>
+                    <p style="color: var(--graphite); margin-top: 6px;">Tente ajustar a busca ou clique em "+ Novo Projeto".</p>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(({ p, idx }) => {
+                const imgs = Array.isArray(p.imagens) ? p.imagens : [];
+                const cover = p.capa || imgs[0] || '';
+                const hasPdf = Boolean(p.pdf && String(p.pdf).trim() !== '');
+                return `
+                <article class="p-card" data-idx="${idx}">
+                    <div class="p-card-media">
+                        <img src="${esc(resolveImgUrl(cover))}" alt="${esc(p.titulo)}" loading="lazy">
+                        <div class="p-card-badges">
+                            <span class="badge-cat">${esc(p.categoria || 'Projeto')}</span>
+                            <span class="badge-order">#${pad(idx + 1)}</span>
+                        </div>
+                    </div>
+                    <div class="p-card-body">
+                        <div>
+                            <h3 class="p-card-title">${esc(p.titulo)}</h3>
+                            <div class="p-card-meta">
+                                <span><i class="far fa-images"></i> ${pad(imgs.length)} fotos</span>
+                                <span class="${hasPdf ? 'has-pdf' : 'no-pdf'}">
+                                    <i class="far fa-file-pdf"></i> ${hasPdf ? 'PDF Anexado' : 'Sem PDF'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-card-actions">
+                            <div class="order-btns">
+                                <button type="button" class="icon-btn" data-move-up="${idx}" title="Mover para cima" ${idx === 0 ? 'disabled' : ''}>
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                                <button type="button" class="icon-btn" data-move-down="${idx}" title="Mover para baixo" ${idx === projects.length - 1 ? 'disabled' : ''}>
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                                <button type="button" class="icon-btn" data-dup="${idx}" title="Duplicar projeto">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                                <button type="button" class="icon-btn is-danger" data-del="${idx}" title="Excluir projeto">
+                                    <i class="far fa-trash-alt"></i>
+                                </button>
+                            </div>
+                            <div class="edit-btns">
+                                <button type="button" class="btn-smEdit" data-edit="${idx}">
+                                    <i class="fas fa-pen"></i> Editar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        /* Eventos de Filtro, Busca e Ações nos Cards */
+        $('#searchInput').addEventListener('input', e => {
+            searchQuery = e.target.value.trim();
+            renderDashboard();
+        });
+
+        $('#adminFilterPills').addEventListener('click', e => {
+            const b = e.target.closest('[data-cat]');
+            if (!b) return;
+            filterCat = b.dataset.cat;
+            $$('.f-pill', $('#adminFilterPills')).forEach(x => x.classList.toggle('is-active', x === b));
+            renderDashboard();
+        });
+
+        $('#projectsAdminGrid').addEventListener('click', async e => {
+            const up = e.target.closest('[data-move-up]');
+            if (up) {
+                const i = +up.dataset.moveUp;
+                if (i > 0) {
+                    [projects[i - 1], projects[i]] = [projects[i], projects[i - 1]];
+                    markDirty(true);
+                    renderDashboard();
+                    await saveToServer(true);
+                }
+                return;
+            }
+            const down = e.target.closest('[data-move-down]');
+            if (down) {
+                const i = +down.dataset.moveDown;
+                if (i < projects.length - 1) {
+                    [projects[i + 1], projects[i]] = [projects[i], projects[i + 1]];
+                    markDirty(true);
+                    renderDashboard();
+                    await saveToServer(true);
+                }
+                return;
+            }
+            const dup = e.target.closest('[data-dup]');
+            if (dup) {
+                const i = +dup.dataset.dup;
+                const copy = JSON.parse(JSON.stringify(projects[i]));
+                copy.titulo = copy.titulo + ' (Cópia)';
+                projects.splice(i + 1, 0, copy);
+                markDirty(true);
+                renderDashboard();
+                await saveToServer(true);
+                return;
+            }
+            const del = e.target.closest('[data-del]');
+            if (del) {
+                const i = +del.dataset.del;
+                if (confirm(`Deseja realmente remover o projeto "${projects[i].titulo}"?`)) {
+                    projects.splice(i, 1);
+                    markDirty(true);
+                    renderDashboard();
+                    await saveToServer(true);
+                }
+                return;
+            }
+            const edit = e.target.closest('[data-edit]');
+            if (edit) {
+                openEditor(+edit.dataset.edit);
+            }
+        });
+
+        /* Navegação entre Abas da Sidebar */
+        $$('.nav-item[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                $$('.nav-item[data-tab]').forEach(b => b.classList.toggle('is-active', b === btn));
+                $('#tabProjects').hidden = tab !== 'projects';
+                $('#tabSound').hidden = tab !== 'sound';
+                $('#tabSettings').hidden = tab !== 'settings';
+            });
+        });
+
+        /* ---------- 4. EDITOR VISUAL DE PROJETO (MODAL DRAWER) ---------- */
+        function detectProjectFolder(p) {
+            const sample = p.capa || (p.imagens && p.imagens[0]) || p.pdf || '';
+            const m = sample.match(/^Projetos\/([^/]+)\//);
+            return m ? m[1] : slugifyFolder(p.titulo);
+        }
+
+        function openEditor(idx) {
+            editingIdx = idx;
+            const isNew = idx < 0;
+            const p = isNew ? {
+                titulo: '',
+                categoria: 'Residencial',
+                descricao: '',
+                capa: '',
+                pdf: null,
+                imagens: []
+            } : JSON.parse(JSON.stringify(projects[idx]));
+
+            $('#drawerSubtitle').textContent = isNew ? 'CADASTRANDO NOVO PROJETO' : `EDITANDO PROJETO #${pad(idx + 1)}`;
+            $('#drawerTitle').textContent = isNew ? 'Novo Projeto Autoral' : p.titulo;
+
+            $('#fTitulo').value = p.titulo || '';
+            $('#fCategoria').value = p.categoria || 'Residencial';
+            $('#fDescricao').value = p.descricao || '';
+            $('#fCapa').value = p.capa || '';
+            $('#fPdf').value = p.pdf || '';
+            const folder = isNew ? '' : detectProjectFolder(p);
+            $('#fFolder').value = folder;
+            $('#lblFolderImgs').textContent = folder || 'novoProjeto';
+
+            draftImages = Array.isArray(p.imagens) ? p.imagens.slice() : [];
+            renderDrawerThumbs();
+            $('#editorModal').hidden = false;
+        }
+
+        $('#fTitulo').addEventListener('input', () => {
+            const v = $('#fTitulo').value.trim();
+            $('#drawerTitle').textContent = v || 'Novo Projeto Autoral';
+            if (editingIdx < 0) {
+                const slug = slugifyFolder(v);
+                $('#fFolder').value = slug;
+                $('#lblFolderImgs').textContent = slug;
+            }
+        });
+
+        $('#fFolder').addEventListener('input', () => {
+            $('#lblFolderImgs').textContent = $('#fFolder').value.trim() || 'novoProjeto';
+        });
+
+        function renderDrawerThumbs() {
+            $('#drawerPhotoCount').textContent = draftImages.length;
+            const curCapa = $('#fCapa').value.trim();
+            const box = $('#drawerThumbsGrid');
+            if (!draftImages.length) {
+                box.innerHTML = `<p style="grid-column:1/-1; font-size:0.84rem; color:var(--graphite); padding: 12px 0;">Nenhuma foto adicionada ainda. Arraste imagens acima para compor a galeria.</p>`;
+                return;
+            }
+            box.innerHTML = draftImages.map((src, k) => {
+                const isCover = curCapa === src || (!curCapa && k === 0);
+                return `
+                <div class="thumb-item${isCover ? ' is-cover' : ''}">
+                    <img src="${esc(resolveImgUrl(src))}" alt="Foto ${k + 1}">
+                    <div class="thumb-overlay">
+                        <div class="thumb-top">
+                            <button type="button" class="btn-set-cover" data-set-cover="${k}">
+                                ${isCover ? '★ Capa Atual' : '★ Capa'}
+                            </button>
+                            <button type="button" class="btn-del-thumb" data-del-img="${k}" title="Remover foto">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="thumb-bottom">
+                            <button type="button" class="thumb-move-btn" data-img-left="${k}" ${k === 0 ? 'disabled' : ''}>←</button>
+                            <span style="font-family:var(--f-mono); font-size:0.62rem; color:#fff;">${pad(k + 1)}</span>
+                            <button type="button" class="thumb-move-btn" data-img-right="${k}" ${k === draftImages.length - 1 ? 'disabled' : ''}>→</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        $('#drawerThumbsGrid').addEventListener('click', e => {
+            const setCov = e.target.closest('[data-set-cover]');
+            if (setCov) {
+                const k = +setCov.dataset.setCover;
+                $('#fCapa').value = draftImages[k];
+                renderDrawerThumbs();
+                return;
+            }
+            const delImg = e.target.closest('[data-del-img]');
+            if (delImg) {
+                const k = +delImg.dataset.delImg;
+                const removed = draftImages.splice(k, 1)[0];
+                if ($('#fCapa').value === removed) {
+                    $('#fCapa').value = draftImages[0] || '';
+                }
+                renderDrawerThumbs();
+                return;
+            }
+            const left = e.target.closest('[data-img-left]');
+            if (left) {
+                const k = +left.dataset.imgLeft;
+                if (k > 0) {
+                    [draftImages[k - 1], draftImages[k]] = [draftImages[k], draftImages[k - 1]];
+                    renderDrawerThumbs();
+                }
+                return;
+            }
+            const right = e.target.closest('[data-img-right]');
+            if (right) {
+                const k = +right.dataset.imgRight;
+                if (k < draftImages.length - 1) {
+                    [draftImages[k + 1], draftImages[k]] = [draftImages[k], draftImages[k + 1]];
+                    renderDrawerThumbs();
+                }
+            }
+        });
+
+        $('#btnAddManualPhoto').addEventListener('click', () => {
+            const val = $('#manualPhotoInput').value.trim();
+            if (!val) return;
+            draftImages.push(val);
+            if (!$('#fCapa').value.trim()) $('#fCapa').value = val;
+            $('#manualPhotoInput').value = '';
+            renderDrawerThumbs();
+        });
+
+        /* Upload Real de Arquivos (Imagens, PDF e Áudio) via /api/upload */
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const res = String(reader.result || '');
+                    const base64 = res.includes(',') ? res.split(',')[1] : res;
+                    resolve({ base64, dataUrl: res });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function uploadFileToServer(targetPath, file) {
+            const { base64, dataUrl } = await fileToBase64(file);
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: targetPath, data: base64 })
+                });
+                if (res.ok) return targetPath;
+            } catch (e) {}
+            return dataUrl; // Fallback em dataURL caso esteja sem servidor Python
+        }
+
+        async function handlePhotoFiles(fileList) {
+            const files = Array.from(fileList || []);
+            if (!files.length) return;
+            const folder = ($('#fFolder').value.trim() || slugifyFolder($('#fTitulo').value) || 'novoProjeto').replace(/[^a-zA-Z0-9_-]/g, '');
+            $('#fFolder').value = folder;
+            showToast(`Enviando ${files.length} foto(s)...`);
+
+            for (const f of files) {
+                const relPath = `Projetos/${folder}/Imagens/${f.name}`;
+                const savedPath = await uploadFileToServer(relPath, f);
+                draftImages.push(savedPath);
+                if (!$('#fCapa').value.trim()) $('#fCapa').value = savedPath;
+            }
+            renderDrawerThumbs();
+            showToast(`${files.length} foto(s) adicionada(s) à galeria!`);
+        }
+
+        const photosDz = $('#photosDropzone');
+        const photosInp = $('#photosFileInput');
+        photosDz.addEventListener('click', () => photosInp.click());
+        photosDz.addEventListener('dragover', e => { e.preventDefault(); photosDz.classList.add('is-dragover'); });
+        photosDz.addEventListener('dragleave', () => photosDz.classList.remove('is-dragover'));
+        photosDz.addEventListener('drop', e => {
+            e.preventDefault();
+            photosDz.classList.remove('is-dragover');
+            handlePhotoFiles(e.dataTransfer.files);
+        });
+        photosInp.addEventListener('change', () => {
+            handlePhotoFiles(photosInp.files);
+            photosInp.value = '';
+        });
+
+        /* Upload de PDF */
+        $('#pdfFileInput').addEventListener('change', async e => {
+            const f = e.target.files && e.target.files[0];
+            if (!f) return;
+            const folder = ($('#fFolder').value.trim() || slugifyFolder($('#fTitulo').value) || 'novoProjeto').replace(/[^a-zA-Z0-9_-]/g, '');
+            const relPath = `Projetos/${folder}/Pdf/${f.name}`;
+            showToast('Enviando prancha PDF...');
+            const saved = await uploadFileToServer(relPath, f);
+            $('#fPdf').value = saved;
+            showToast('Arquivo PDF anexado ao projeto!');
+        });
+
+        $('#btnClearPdf').addEventListener('click', () => {
+            $('#fPdf').value = '';
+        });
+
+        function closeEditor() {
+            $('#editorModal').hidden = true;
+        }
+        $('#btnCloseDrawer').addEventListener('click', closeEditor);
+        $('#btnCancelDrawer').addEventListener('click', closeEditor);
+        $('#btnNewProject').addEventListener('click', () => openEditor(-1));
+        $('#btnSidebarNew').addEventListener('click', () => openEditor(-1));
+
+        $('#btnConfirmProject').addEventListener('click', async () => {
+            const titulo = $('#fTitulo').value.trim();
+            if (!titulo) {
+                alert('Informe o título do projeto.');
+                $('#fTitulo').focus();
+                return;
+            }
+            const categoria = $('#fCategoria').value;
+            const descricao = $('#fDescricao').value.trim();
+            const pdfVal = $('#fPdf').value.trim();
+            const capaVal = $('#fCapa').value.trim() || draftImages[0] || '';
+
+            const item = {
+                titulo,
+                categoria,
+                capa: capaVal,
+                pdf: pdfVal ? pdfVal : null,
+                imagens: draftImages.slice()
+            };
+            if (descricao) item.descricao = descricao;
+
+            if (editingIdx >= 0) {
+                projects[editingIdx] = item;
+            } else {
+                projects.unshift(item);
+            }
+
+            closeEditor();
+            markDirty(true);
+            renderDashboard();
+            await saveToServer(true);
+        });
+
+        /* ---------- 5. SALVAMENTO NO SERVIDOR E EXPORTAÇÃO JSON ---------- */
+        async function saveToServer(silent = false) {
+            const payload = {
+                projetos: projects
+            };
+            if (customAudio) payload.musica = customAudio;
+
+            try {
+                localStorage.setItem('jm_custom_audio', customAudio || '');
+                const res = await fetch('/api/save-projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload, null, 2)
+                });
+                if (res.ok) {
+                    markDirty(false);
+                    if (!silent) showToast('Portfólio salvo diretamente em data/projetos.json!');
+                    else showToast('Alterações salvas automaticamente em data/projetos.json!');
+                    return;
+                }
+            } catch (e) {}
+            if (!silent) {
+                downloadJsonFile(payload);
+                markDirty(false);
+                showToast('Arquivo projetos.json baixado com suas alterações!');
+            }
+        }
+
+        function downloadJsonFile(payload) {
+            const blob = new Blob([JSON.stringify(payload || { projetos }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'projetos.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        $('#btnSaveAll').addEventListener('click', () => saveToServer(false));
+        $('#btnDownloadJson').addEventListener('click', () => downloadJsonFile({ projetos, ...(customAudio ? { musica: customAudio } : {}) }));
+        $('#btnExportBackup').addEventListener('click', () => downloadJsonFile({ projetos, ...(customAudio ? { musica: customAudio } : {}) }));
+
+        $('#importJsonInput').addEventListener('change', async e => {
+            const f = e.target.files && e.target.files[0];
+            if (!f) return;
+            try {
+                const txt = await f.text();
+                const parsed = JSON.parse(txt);
+                if (Array.isArray(parsed.projetos)) {
+                    projects = parsed.projetos;
+                    renderDashboard();
+                    await saveToServer(false);
+                } else {
+                    alert('Formato inválido: o JSON deve conter a chave "projetos".');
+                }
+            } catch (err) {
+                alert('Erro ao ler arquivo JSON.');
+            }
+        });
+
+        /* ---------- 6. ABA DE SOM AMBIENTE ---------- */
+        let testCtx = null;
+        let testPlaying = false;
+        let testTimer = null;
+
+        $('#btnTestSynth').addEventListener('click', () => {
+            if (testPlaying) {
+                clearInterval(testTimer);
+                if (testCtx) testCtx.close();
+                testCtx = null;
+                testPlaying = false;
+                $('#btnTestSynth').innerHTML = '<i class="fas fa-play"></i> Ouvir Som Ambiente Padrão (Sintetizador)';
+                return;
+            }
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            testCtx = new AudioCtx();
+            testPlaying = true;
+            $('#btnTestSynth').innerHTML = '<i class="fas fa-stop"></i> Parar Teste de Som';
+            const notes = [261.63, 329.63, 392.00, 440.00, 329.63];
+            let step = 0;
+            const playNote = () => {
+                if (!testCtx) return;
+                const osc = testCtx.createOscillator();
+                const g = testCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(notes[step % notes.length], testCtx.currentTime);
+                g.gain.setValueAtTime(0.001, testCtx.currentTime);
+                g.gain.linearRampToValueAtTime(0.09, testCtx.currentTime + 0.08);
+                g.gain.exponentialRampToValueAtTime(0.0008, testCtx.currentTime + 1.8);
+                osc.connect(g);
+                g.connect(testCtx.destination);
+                osc.start();
+                osc.stop(testCtx.currentTime + 1.9);
+                step++;
+            };
+            playNote();
+            testTimer = setInterval(playNote, 1400);
+        });
+
+        const audioDz = $('#audioDropzone');
+        const audioInp = $('#audioFileInput');
+        audioDz.addEventListener('click', () => audioInp.click());
+        audioInp.addEventListener('change', async () => {
+            const f = audioInp.files && audioInp.files[0];
+            if (!f) return;
+            const relPath = `assets/${f.name}`;
+            showToast('Enviando arquivo de áudio...');
+            const saved = await uploadFileToServer(relPath, f);
+            customAudio = saved;
+            $('#customAudioInput').value = saved;
+            await saveToServer(false);
+            renderDashboard();
+        });
+
+        $('#btnClearCustomAudio').addEventListener('click', async () => {
+            customAudio = 'assets/ambient.mp3';
+            $('#customAudioInput').value = 'assets/ambient.mp3';
+            if ($('#adminAudioPreview')) $('#adminAudioPreview').src = '../assets/ambient.mp3';
+            if ($('#audioActiveBadge')) $('#audioActiveBadge').textContent = 'assets/ambient.mp3';
+            await saveToServer(false);
+            renderDashboard();
+            showToast('Trilha assets/ambient.mp3 restaurada!');
+        });
+
+        $('#btnSaveAudioConfig').addEventListener('click', async () => {
+            customAudio = $('#customAudioInput').value.trim() || 'assets/ambient.mp3';
+            if ($('#adminAudioPreview') && customAudio) $('#adminAudioPreview').src = resolveImgUrl(customAudio);
+            if ($('#audioActiveBadge')) $('#audioActiveBadge').textContent = customAudio;
+            await saveToServer(false);
+            renderDashboard();
+        });
+
+        /* ---------- 7. ALTERAÇÃO DE SENHA ---------- */
+        $('#btnSaveCredentials').addEventListener('click', () => {
+            const u = $('#cfgAdminUser').value.trim();
+            const p = $('#cfgAdminPass').value.trim();
+            if (u) localStorage.setItem(CRED_USER_KEY, u);
+            if (p) localStorage.setItem(CRED_PASS_KEY, p);
+            $('#cfgAdminPass').value = '';
+            showToast('Credenciais de acesso atualizadas com sucesso!');
+        });
+
+        loadData();
+    })();
+    </script>
+</body>
 </html>

@@ -1,0 +1,14 @@
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+.system_generated/
+*.tmp
+
+# Ambientes locais / agentes / backups temporários
+.agents/
+.impeccable/
+skills-lock.json
+*.backup.html
+*-backup.html
