@@ -1436,6 +1436,27 @@
 
                     <div class="section-card">
                         <div class="section-card-title">
+                            <span>Sincronização com a Nuvem (Cloudflare)</span>
+                            <i class="fab fa-github"></i>
+                        </div>
+                        <h3 style="font-family: var(--f-display); font-size: 1.65rem; font-weight: 400; margin-bottom: 14px;">Chave de Publicação Direta</h3>
+                        <p style="font-size: 0.88rem; color: var(--graphite); line-height: 1.5; margin-bottom: 16px;">
+                            Configure a chave do GitHub para publicar novos projetos, fotos e alterações instantaneamente no site oficial, sem precisar de servidor ou download manual.
+                        </p>
+                        <div class="field">
+                            <label>GitHub Personal Access Token</label>
+                            <input type="password" id="cfgGithubToken" placeholder="Cole o token github_pat_...">
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span id="tokenStatusText" style="font-family:var(--f-mono); font-size:0.75rem; color:var(--ok);"></span>
+                            <button type="button" class="btn-pill is-terra" id="btnSaveGithubToken">
+                                <i class="fas fa-save"></i> Salvar Chave na Nuvem
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <div class="section-card-title">
                             <span>Importar / Exportar Acervo</span>
                             <i class="fas fa-database"></i>
                         </div>
@@ -2016,7 +2037,15 @@
             renderDrawerThumbs();
         });
 
-        /* Upload Real de Arquivos (Imagens, PDF e Áudio) via /api/upload */
+        /* Upload Real de Arquivos (Imagens, PDF e Áudio) via GitHub API ou Servidor Local */
+        const GITHUB_REPO = 'GlaucoVinicius-Dev/jmeurenarquitetura';
+        const GITHUB_BRANCH = 'main';
+        const GITHUB_TOKEN_KEY = 'jm_gh_token';
+
+        function getGithubToken() {
+            return localStorage.getItem(GITHUB_TOKEN_KEY) || '';
+        }
+
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -2030,8 +2059,48 @@
             });
         }
 
+        async function uploadFileToGithub(path, base64Content, commitMsg) {
+            const token = getGithubToken();
+            if (!token) return false;
+
+            let sha = null;
+            try {
+                const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURI(path)}?ref=${GITHUB_BRANCH}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                if (getRes.ok) {
+                    const json = await getRes.json();
+                    sha = json.sha;
+                }
+            } catch (e) {}
+
+            const body = {
+                message: commitMsg || `upload: ${path}`,
+                content: base64Content,
+                branch: GITHUB_BRANCH
+            };
+            if (sha) body.sha = sha;
+
+            const putRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURI(path)}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            return putRes.ok;
+        }
+
         async function uploadFileToServer(targetPath, file) {
             const { base64, dataUrl } = await fileToBase64(file);
+
+            // 1. Tenta salvar no servidor local (caso esteja rodando em localhost)
             try {
                 const res = await fetch('/api/upload', {
                     method: 'POST',
@@ -2040,7 +2109,14 @@
                 });
                 if (res.ok) return targetPath;
             } catch (e) {}
-            return dataUrl; // Fallback em dataURL caso esteja sem servidor Python
+
+            // 2. Tenta enviar direto para o GitHub (na nuvem Cloudflare)
+            try {
+                const okGh = await uploadFileToGithub(targetPath, base64, `upload: adiciona ${targetPath} via painel admin`);
+                if (okGh) return targetPath;
+            } catch (e) {}
+
+            return targetPath;
         }
 
         async function handlePhotoFiles(fileList) {
@@ -2133,26 +2209,51 @@
         });
 
         /* ---------- 5. SALVAMENTO NO SERVIDOR E EXPORTAÇÃO JSON ---------- */
+        function utf8ToBase64(str) {
+            return window.btoa(unescape(encodeURIComponent(str)));
+        }
+
         async function saveToServer(silent = false) {
             const payload = {
                 projetos: projects
             };
             if (customAudio) payload.musica = customAudio;
+            const jsonText = JSON.stringify(payload, null, 2);
 
+            // 1. Tenta salvar no servidor local (quando rodando com python nocache_server.py)
             try {
                 localStorage.setItem('jm_custom_audio', customAudio || '');
                 const res = await fetch('/api/save-projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload, null, 2)
+                    body: jsonText
                 });
                 if (res.ok) {
                     markDirty(false);
                     if (!silent) showToast('Portfólio salvo diretamente em data/projetos.json!');
-                    else showToast('Alterações salvas automaticamente em data/projetos.json!');
+                    else showToast('Alterações salvas automaticamente no servidor!');
                     return;
                 }
             } catch (e) {}
+
+            // 2. Se estiver na nuvem (Cloudflare), salva diretamente no GitHub via Token Seguro
+            const token = getGithubToken();
+            if (token) {
+                try {
+                    showToast('Publicando alterações no site oficial (GitHub / Cloudflare)...');
+                    const b64 = utf8ToBase64(jsonText);
+                    const ok = await uploadFileToGithub('data/projetos.json', b64, 'cms: atualiza data/projetos.json via painel admin');
+                    if (ok) {
+                        markDirty(false);
+                        showToast('✓ Salvo e publicado com sucesso no site oficial!');
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Erro ao salvar no GitHub:', e);
+                }
+            }
+
+            // 3. Fallback: baixa o arquivo JSON
             if (!silent) {
                 downloadJsonFile(payload);
                 markDirty(false);
@@ -2301,6 +2402,57 @@
             $('#cfgAdminPassConfirm').value = '';
             showToast('Credenciais de acesso atualizadas com sucesso!');
         });
+
+        /* ---------- 8. CONFIGURAÇÃO DO GITHUB TOKEN ---------- */
+        function updateTokenStatusDisplay() {
+            const t = getGithubToken();
+            const el = $('#tokenStatusText');
+            const inp = $('#cfgGithubToken');
+            if (!el) return;
+            if (t) {
+                el.textContent = '✓ Conectado ao GitHub (' + t.slice(0, 14) + '...)';
+                el.style.color = 'var(--ok)';
+                if (inp && !inp.value) inp.value = t;
+            } else {
+                el.textContent = 'Chave ainda não configurada';
+                el.style.color = 'var(--graphite)';
+            }
+        }
+
+        $('#btnSaveGithubToken').addEventListener('click', async () => {
+            const tokenVal = $('#cfgGithubToken').value.trim();
+            if (!tokenVal) {
+                localStorage.removeItem(GITHUB_TOKEN_KEY);
+                updateTokenStatusDisplay();
+                showToast('Chave removida.');
+                return;
+            }
+
+            showToast('Testando conexão com o repositório...');
+            try {
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
+                    headers: {
+                        'Authorization': `Bearer ${tokenVal}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                if (res.ok) {
+                    localStorage.setItem(GITHUB_TOKEN_KEY, tokenVal);
+                    updateTokenStatusDisplay();
+                    showToast('✓ Conexão com GitHub autorizada e salva com sucesso!');
+                } else {
+                    alert('Não foi possível autenticar o token no repositório. Verifique se copiou a chave completa.');
+                }
+            } catch (err) {
+                alert('Erro ao conectar com a API do GitHub. Verifique sua conexão.');
+            }
+        });
+
+        const origRender = renderDashboard;
+        renderDashboard = function () {
+            origRender();
+            updateTokenStatusDisplay();
+        };
 
         loadData();
     })();
