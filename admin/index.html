@@ -441,16 +441,6 @@
             color: var(--terra-ink);
             background: var(--white);
         }
-        .login-hint {
-            margin-top: 16px;
-            padding: 10px 12px;
-            border-radius: 6px;
-            background: var(--paper-2);
-            font-family: var(--f-mono);
-            font-size: 0.68rem;
-            color: var(--graphite);
-            line-height: 1.5;
-        }
 
         /* =========================================================
            2. DASHBOARD PRINCIPAL DO ESTÚDIO (Framer CMS / Supabase Style)
@@ -1224,7 +1214,7 @@
                 <form id="loginForm">
                     <div class="field">
                         <label for="loginEmail">E-mail ou Usuário</label>
-                        <input type="text" id="loginEmail" value="jmeuren.arq@gmail.com" placeholder="jmeuren.arq@gmail.com" required autocomplete="username">
+                        <input type="text" id="loginEmail" placeholder="Digite seu e-mail ou usuário" required autocomplete="username">
                     </div>
 
                     <div class="field">
@@ -1232,7 +1222,7 @@
                             <span>Senha do Painel</span>
                         </label>
                         <div class="input-wrap">
-                            <input type="password" id="loginPass" value="jmeuren2026" placeholder="••••••••••••" required autocomplete="current-password">
+                            <input type="password" id="loginPass" placeholder="••••••••••••" required autocomplete="current-password">
                             <button type="button" class="pw-toggle" id="pwToggle" aria-label="Mostrar senha">
                                 <i class="far fa-eye"></i>
                             </button>
@@ -1244,19 +1234,6 @@
                         <i class="fas fa-arrow-right"></i>
                     </button>
                 </form>
-
-                <div class="login-divider">ou acesso imediato</div>
-
-                <button type="button" class="btn-quick-access" id="btnQuickLogin">
-                    <i class="fas fa-bolt"></i>
-                    <span>Entrar com 1 Clique (Ambiente Local)</span>
-                </button>
-
-                <div class="login-hint">
-                    <strong>Credenciais padrão:</strong><br>
-                    Usuário: <code>jmeuren.arq@gmail.com</code> | Senha: <code>jmeuren2026</code><br>
-                    <em>(Você pode alterar a senha na aba Configurações do painel).</em>
-                </div>
             </div>
 
             <div style="text-align: center; font-family: var(--f-mono); font-size: 0.68rem; color: var(--graphite);">
@@ -1317,6 +1294,9 @@
                 </div>
 
                 <div class="topbar-actions">
+                    <button type="button" class="btn-pill" id="btnTopChangePass" title="Alterar Senha do Administrador">
+                        <i class="fas fa-key"></i> Alterar Senha
+                    </button>
                     <button type="button" class="btn-pill" id="btnDownloadJson" title="Baixar cópia do arquivo data/projetos.json">
                         <i class="fas fa-download"></i> Baixar JSON
                     </button>
@@ -1433,13 +1413,22 @@
                         </div>
                         <h3 style="font-family: var(--f-display); font-size: 1.65rem; font-weight: 400; margin-bottom: 14px;">Alterar Credenciais de Login</h3>
                         <div class="field">
+                            <label>Senha Atual</label>
+                            <input type="password" id="cfgAdminCurrentPass" placeholder="Digite sua senha atual">
+                        </div>
+                        <div class="field">
                             <label>E-mail / Usuário do Administrador</label>
-                            <input type="text" id="cfgAdminUser" value="jmeuren.arq@gmail.com">
+                            <input type="text" id="cfgAdminUser" value="jmeuren@gmail.com">
                         </div>
                         <div class="field">
                             <label>Nova Senha</label>
-                            <input type="password" id="cfgAdminPass" placeholder="Digite a nova senha">
+                            <input type="password" id="cfgAdminPass" placeholder="Digite a nova senha desejada">
                         </div>
+                        <div class="field">
+                            <label>Confirmar Nova Senha</label>
+                            <input type="password" id="cfgAdminPassConfirm" placeholder="Repita a nova senha">
+                        </div>
+                        <div class="login-error" id="cfgAdminError" hidden style="margin-bottom: 14px;"></div>
                         <button type="button" class="btn-pill is-ink" id="btnSaveCredentials">
                             <i class="fas fa-check"></i> Atualizar Senha
                         </button>
@@ -1632,7 +1621,7 @@
         const CRED_USER_KEY = 'jm_admin_user';
         const CRED_PASS_KEY = 'jm_admin_pass';
 
-        function getValidUser() { return localStorage.getItem(CRED_USER_KEY) || 'jmeuren.arq@gmail.com'; }
+        function getValidUser() { return localStorage.getItem(CRED_USER_KEY) || 'jmeuren@gmail.com'; }
         function getValidPass() { return localStorage.getItem(CRED_PASS_KEY) || 'jmeuren2026'; }
 
         function enterDashboard() {
@@ -1664,7 +1653,6 @@
             }
         });
 
-        $('#btnQuickLogin').addEventListener('click', () => enterDashboard());
         $('#btnLogout').addEventListener('click', () => {
             sessionStorage.removeItem(AUTH_KEY);
             $('#adminApp').hidden = true;
@@ -1880,14 +1868,24 @@
         });
 
         /* Navegação entre Abas da Sidebar */
+        function switchAdminTab(tab) {
+            $$('.nav-item[data-tab]').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
+            $('#tabProjects').hidden = tab !== 'projects';
+            $('#tabSound').hidden = tab !== 'sound';
+            $('#tabSettings').hidden = tab !== 'settings';
+        }
+
         $$('.nav-item[data-tab]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.dataset.tab;
-                $$('.nav-item[data-tab]').forEach(b => b.classList.toggle('is-active', b === btn));
-                $('#tabProjects').hidden = tab !== 'projects';
-                $('#tabSound').hidden = tab !== 'sound';
-                $('#tabSettings').hidden = tab !== 'settings';
-            });
+            btn.addEventListener('click', () => switchAdminTab(btn.dataset.tab));
+        });
+
+        $('#btnTopChangePass').addEventListener('click', () => {
+            switchAdminTab('settings');
+            const target = $('#cfgAdminCurrentPass');
+            if (target) {
+                target.focus();
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         });
 
         /* ---------- 4. EDITOR VISUAL DE PROJETO (MODAL DRAWER) ---------- */
@@ -2267,11 +2265,40 @@
 
         /* ---------- 7. ALTERAÇÃO DE SENHA ---------- */
         $('#btnSaveCredentials').addEventListener('click', () => {
+            const currentPass = $('#cfgAdminCurrentPass').value;
             const u = $('#cfgAdminUser').value.trim();
             const p = $('#cfgAdminPass').value.trim();
+            const pConfirm = $('#cfgAdminPassConfirm').value.trim();
+            const err = $('#cfgAdminError');
+
+            if (currentPass !== getValidPass()) {
+                err.textContent = 'A senha atual informada está incorreta.';
+                err.hidden = false;
+                return;
+            }
+            if (!p) {
+                err.textContent = 'Por favor, digite a nova senha.';
+                err.hidden = false;
+                return;
+            }
+            if (p.length < 4) {
+                err.textContent = 'A nova senha deve ter no mínimo 4 caracteres.';
+                err.hidden = false;
+                return;
+            }
+            if (p !== pConfirm) {
+                err.textContent = 'A confirmação não coincide com a nova senha.';
+                err.hidden = false;
+                return;
+            }
+
+            err.hidden = true;
             if (u) localStorage.setItem(CRED_USER_KEY, u);
-            if (p) localStorage.setItem(CRED_PASS_KEY, p);
+            localStorage.setItem(CRED_PASS_KEY, p);
+
+            $('#cfgAdminCurrentPass').value = '';
             $('#cfgAdminPass').value = '';
+            $('#cfgAdminPassConfirm').value = '';
             showToast('Credenciais de acesso atualizadas com sucesso!');
         });
 
