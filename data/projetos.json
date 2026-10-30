@@ -1,6 +1,13 @@
 {
   "projetos": [
     {
+      "titulo": "testes",
+      "categoria": "Residencial",
+      "capa": "",
+      "pdf": "Projetos/testes/Pdf/2026PP01362.pdf",
+      "imagens": []
+    },
+    {
       "titulo": "Apartamento 314 Norte",
       "categoria": "Residencial",
       "capa": "Projetos/apart314norte/Imagens/314nr (1).jpg",
