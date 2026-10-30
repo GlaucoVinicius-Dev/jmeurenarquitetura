@@ -2428,7 +2428,7 @@
 
             heroIndex.innerHTML = hero.list.map((pi, k) => {
                 const p = projects[pi];
-                return `<li><button type="button" class="hi${k === 0 ? ' is-active' : ''}" data-k="${k}" aria-label="${esc(p.titulo)} — ver destaque"><span class="hi-num">${pad(pi + 1)}</span><span class="hi-name">${esc(p.titulo)}</span><span class="hi-cat">${esc(p.categoria || '')}</span></button></li>`;
+                return `<li><button type="button" class="hi${k === 0 ? ' is-active' : ''}" data-k="${k}" aria-label="${esc(p.titulo)} — ver destaque"><span class="hi-num">${pad(k + 1)}</span><span class="hi-name">${esc(p.titulo)}</span><span class="hi-cat">${esc(p.categoria || '')}</span></button></li>`;
             }).join('');
             $('#heroIndexCount').textContent = pad(hero.list.length);
             $('#heroUi').hidden = false;
@@ -3469,7 +3469,7 @@
         /* ---------- carregamento inicial ---------- */
         async function loadProjects() {
             try {
-                const res = await fetch('data/projetos.json', { cache: 'no-cache' });
+                const res = await fetch('data/projetos.json?t=' + Date.now(), { cache: 'no-store' });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 projects = (data.projetos || []).filter(p => p && p.titulo);

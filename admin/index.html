@@ -1683,7 +1683,7 @@
         /* ---------- 2. CARREGAMENTO DE DADOS ---------- */
         async function loadData() {
             try {
-                const res = await fetch('../data/projetos.json', { cache: 'no-cache' });
+                const res = await fetch('../data/projetos.json?t=' + Date.now(), { cache: 'no-store' });
                 const data = await res.json();
                 projects = Array.isArray(data.projetos) ? data.projetos : [];
                 customAudio = data.musica || localStorage.getItem('jm_custom_audio') || 'assets/ambient.mp3';
@@ -2059,10 +2059,116 @@
             });
         }
 
+        let isUploadBusy = false;
+        function setUploadBusy(busy, msg) {
+            isUploadBusy = busy;
+            const btn = $('#btnConfirmProject');
+            if (btn) {
+                btn.disabled = busy;
+                btn.style.opacity = busy ? '0.6' : '1';
+                btn.style.cursor = busy ? 'not-allowed' : 'pointer';
+                if (busy) {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${msg || 'Enviando arquivo... Aguarde'}`;
+                } else {
+                    btn.innerHTML = `<i class="fas fa-check"></i> Confirmar e Salvar Projeto`;
+                }
+            }
+        }
+
+        async function uploadLargeFileToGithub(path, base64Content, commitMsg, token) {
+            // Suporta arquivos de até 100MB via GitHub Git Blobs API
+            const blobRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/blobs`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: base64Content, encoding: 'base64' })
+            });
+            if (!blobRes.ok) {
+                const bErr = await blobRes.json().catch(() => ({}));
+                throw new Error(bErr.message || 'Falha ao criar blob no GitHub');
+            }
+            const { sha: blobSha } = await blobRes.json();
+
+            // Pega o commit atual da branch
+            const refRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/ref/heads/${GITHUB_BRANCH}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            if (!refRes.ok) throw new Error('Falha ao obter referência da branch no GitHub');
+            const refData = await refRes.json();
+            const latestCommitSha = refData.object.sha;
+
+            // Pega a tree base do commit
+            const commitRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/commits/${latestCommitSha}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            if (!commitRes.ok) throw new Error('Falha ao obter árvore de arquivos no GitHub');
+            const commitData = await commitRes.json();
+            const baseTreeSha = commitData.tree.sha;
+
+            // Cria nova árvore com o arquivo
+            const treeRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/trees`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    base_tree: baseTreeSha,
+                    tree: [{ path, mode: '100644', type: 'blob', sha: blobSha }]
+                })
+            });
+            if (!treeRes.ok) throw new Error('Falha ao criar árvore de commit no GitHub');
+            const { sha: newTreeSha } = await treeRes.json();
+
+            // Cria novo commit
+            const newCommitRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/commits`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: commitMsg || `upload: ${path}`,
+                    tree: newTreeSha,
+                    parents: [latestCommitSha]
+                })
+            });
+            if (!newCommitRes.ok) throw new Error('Falha ao gerar commit no GitHub');
+            const { sha: newCommitSha } = await newCommitRes.json();
+
+            // Atualiza a branch
+            const updateRefRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/refs/heads/${GITHUB_BRANCH}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sha: newCommitSha })
+            });
+            if (!updateRefRes.ok) throw new Error('Falha ao atualizar branch no GitHub');
+            return true;
+        }
+
         async function uploadFileToGithub(path, base64Content, commitMsg) {
             const token = getGithubToken();
-            if (!token) return false;
+            if (!token) {
+                alert('Atenção: Token do GitHub não configurado. Adicione seu token nas configurações para salvar no site oficial.');
+                return false;
+            }
 
+            // Tenta primeiro via Contents API padrão (até 25MB)
             let sha = null;
             try {
                 const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURI(path)}?ref=${GITHUB_BRANCH}`, {
@@ -2094,7 +2200,24 @@
                 body: JSON.stringify(body)
             });
 
-            return putRes.ok;
+            if (putRes.ok) return true;
+
+            // Se falhou por limite de tamanho (422) ou similar, tenta via Git Data Blobs API (até 100MB)
+            if (putRes.status === 422 || putRes.status === 413) {
+                console.warn('Arquivo grande: tentando envio via Git Data Blobs API (até 100MB)...');
+                try {
+                    return await uploadLargeFileToGithub(path, base64Content, commitMsg, token);
+                } catch (errLarge) {
+                    console.error('Falha no upload via Blobs API:', errLarge);
+                    alert(`Erro ao enviar arquivo para o GitHub: ${errLarge.message}`);
+                    return false;
+                }
+            }
+
+            const errJson = await putRes.json().catch(() => ({}));
+            console.error('Erro no upload GitHub:', putRes.status, errJson);
+            alert(`Erro do GitHub (${putRes.status}): ${errJson.message || 'Falha ao salvar arquivo'}`);
+            return false;
         }
 
         async function uploadFileToServer(targetPath, file) {
@@ -2110,13 +2233,17 @@
                 if (res.ok) return targetPath;
             } catch (e) {}
 
-            // 2. Tenta enviar direto para o GitHub (na nuvem Cloudflare)
-            try {
-                const okGh = await uploadFileToGithub(targetPath, base64, `upload: adiciona ${targetPath} via painel admin`);
-                if (okGh) return targetPath;
-            } catch (e) {}
+            // 2. Se estiver na nuvem (Cloudflare), envia direto para o GitHub
+            const token = getGithubToken();
+            if (!token) {
+                alert('Token do GitHub não configurado. Por favor, cole seu Token do GitHub no topo do painel para enviar arquivos.');
+                return null;
+            }
 
-            return targetPath;
+            const okGh = await uploadFileToGithub(targetPath, base64, `upload: adiciona ${targetPath} via painel admin`);
+            if (okGh) return targetPath;
+
+            return null;
         }
 
         async function handlePhotoFiles(fileList) {
@@ -2124,16 +2251,34 @@
             if (!files.length) return;
             const folder = ($('#fFolder').value.trim() || slugifyFolder($('#fTitulo').value) || 'novoProjeto').replace(/[^a-zA-Z0-9_-]/g, '');
             $('#fFolder').value = folder;
+
+            setUploadBusy(true, `Enviando ${files.length} foto(s)...`);
             showToast(`Enviando ${files.length} foto(s)...`);
 
-            for (const f of files) {
-                const relPath = `Projetos/${folder}/Imagens/${f.name}`;
-                const savedPath = await uploadFileToServer(relPath, f);
-                draftImages.push(savedPath);
-                if (!$('#fCapa').value.trim()) $('#fCapa').value = savedPath;
+            try {
+                let successCount = 0;
+                for (let i = 0; i < files.length; i++) {
+                    const f = files[i];
+                    if (f.size > 100 * 1024 * 1024) {
+                        alert(`A foto "${f.name}" tem ${(f.size / (1024 * 1024)).toFixed(1)}MB e ultrapassa o limite de 100MB.`);
+                        continue;
+                    }
+                    setUploadBusy(true, `Enviando foto ${i + 1} de ${files.length}...`);
+                    const relPath = `Projetos/${folder}/Imagens/${f.name}`;
+                    const savedPath = await uploadFileToServer(relPath, f);
+                    if (savedPath) {
+                        draftImages.push(savedPath);
+                        if (!$('#fCapa').value.trim()) $('#fCapa').value = savedPath;
+                        successCount++;
+                    }
+                }
+                renderDrawerThumbs();
+                if (successCount > 0) {
+                    showToast(`✓ ${successCount} foto(s) enviada(s) com sucesso!`);
+                }
+            } finally {
+                setUploadBusy(false);
             }
-            renderDrawerThumbs();
-            showToast(`${files.length} foto(s) adicionada(s) à galeria!`);
         }
 
         const photosDz = $('#photosDropzone');
@@ -2155,12 +2300,23 @@
         $('#pdfFileInput').addEventListener('change', async e => {
             const f = e.target.files && e.target.files[0];
             if (!f) return;
+            if (f.size > 100 * 1024 * 1024) {
+                alert(`O arquivo PDF tem ${(f.size / (1024 * 1024)).toFixed(1)}MB e ultrapassa o limite de 100MB do GitHub. Comprima o arquivo antes de enviar.`);
+                return;
+            }
             const folder = ($('#fFolder').value.trim() || slugifyFolder($('#fTitulo').value) || 'novoProjeto').replace(/[^a-zA-Z0-9_-]/g, '');
             const relPath = `Projetos/${folder}/Pdf/${f.name}`;
+            setUploadBusy(true, `Enviando prancha PDF (${(f.size / (1024 * 1024)).toFixed(1)}MB)...`);
             showToast('Enviando prancha PDF...');
-            const saved = await uploadFileToServer(relPath, f);
-            $('#fPdf').value = saved;
-            showToast('Arquivo PDF anexado ao projeto!');
+            try {
+                const saved = await uploadFileToServer(relPath, f);
+                if (saved) {
+                    $('#fPdf').value = saved;
+                    showToast('✓ Arquivo PDF salvo e anexado ao projeto!');
+                }
+            } finally {
+                setUploadBusy(false);
+            }
         });
 
         $('#btnClearPdf').addEventListener('click', () => {
@@ -2176,6 +2332,10 @@
         $('#btnSidebarNew').addEventListener('click', () => openEditor(-1));
 
         $('#btnConfirmProject').addEventListener('click', async () => {
+            if (isUploadBusy) {
+                alert('Aguarde o envio dos arquivos terminar antes de salvar o projeto.');
+                return;
+            }
             const titulo = $('#fTitulo').value.trim();
             if (!titulo) {
                 alert('Informe o título do projeto.');
@@ -2186,6 +2346,11 @@
             const descricao = $('#fDescricao').value.trim();
             const pdfVal = $('#fPdf').value.trim();
             const capaVal = $('#fCapa').value.trim() || draftImages[0] || '';
+
+            if (!capaVal && draftImages.length === 0) {
+                alert('Por favor, adicione pelo menos 1 fotografia para a capa do projeto antes de salvar.');
+                return;
+            }
 
             const item = {
                 titulo,
