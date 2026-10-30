@@ -1520,6 +1520,7 @@
 
         <div class="header-actions-wrap">
             <!-- Controle de Som Arquitetônico (unseen.co style) -->
+            <audio id="bgAmbientAudio" src="assets/alex-morgan-blues-jazz-rainy-night-552797.mp3" autoplay loop preload="auto" playsinline hidden></audio>
             <button type="button" class="header-sound is-playing" id="soundToggle" aria-label="Experiência sonora" aria-pressed="true" title="Desativar som">
                 <span class="sound-bars" aria-hidden="true">
                     <i></i><i></i><i></i><i></i>
@@ -1876,10 +1877,15 @@
                 this.arpTimer = null;
                 this.chordIdx = 0;
                 this.noteStep = 0;
-                this.customAudio = null;
+                this.customAudio = $('#bgAmbientAudio') || null;
                 this.customAudioUrl = 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
                 this.isPlaying = true;
                 this.unlockBound = null;
+                this.playPending = false;
+                if (this.customAudio) {
+                    this.customAudio.volume = 0.55;
+                    this.customAudio.loop = true;
+                }
             }
             setCustomTrack(src) {
                 const nextUrl = src ? String(src).trim() : 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
@@ -1892,10 +1898,9 @@
                 this.customAudioUrl = nextUrl;
                 if (this.customAudio) {
                     this.customAudio.pause();
-                    this.customAudio = null;
+                    this.customAudio.src = url(nextUrl);
                 }
                 if (this.isPlaying) {
-                    this.stopAmbient();
                     this.startAmbient();
                 }
             }
@@ -1929,7 +1934,7 @@
             }
             setupUnlockListeners() {
                 if (this.unlockBound) return;
-                const events = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'wheel', 'scroll', 'mousemove', 'click'];
+                const events = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'keydown', 'keyup', 'click'];
                 this.unlockBound = (ev) => {
                     if (ev && ev.target && ev.target.closest && ev.target.closest('#soundToggle')) {
                         return;
@@ -1942,44 +1947,48 @@
                     if (this.ctx && this.ctx.state === 'suspended') {
                         this.ctx.resume().catch(() => {});
                     }
-                    if (this.customAudio && this.customAudio.paused) {
-                        this.customAudio.play().then(() => {
-                            this.removeUnlockListeners();
-                        }).catch(() => {});
-                    } else if (!this.customAudio) {
-                        this.startAmbient();
-                    } else {
-                        this.removeUnlockListeners();
-                    }
+                    this.startAmbient();
                 };
                 events.forEach(ev => window.addEventListener(ev, this.unlockBound, { passive: true, capture: true }));
             }
             removeUnlockListeners() {
                 if (!this.unlockBound) return;
-                const events = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'wheel', 'scroll', 'mousemove', 'click'];
+                const events = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'keydown', 'keyup', 'click'];
                 events.forEach(ev => window.removeEventListener(ev, this.unlockBound, { capture: true }));
                 this.unlockBound = null;
             }
             startAmbient() {
+                if (!this.isPlaying) return;
                 const trackSrc = this.customAudioUrl || 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
                 try {
                     if (!this.customAudio) {
-                        this.customAudio = new Audio(url(trackSrc));
-                        this.customAudio.loop = true;
-                        this.customAudio.volume = 0.55;
-                        this.customAudio.preload = 'auto';
+                        this.customAudio = $('#bgAmbientAudio') || new Audio(url(trackSrc));
                     }
+                    this.customAudio.loop = true;
+                    this.customAudio.volume = 0.55;
+                    this.customAudio.muted = false;
+                    if (!this.customAudio.paused && this.customAudio.currentTime > 0) {
+                        this.removeUnlockListeners();
+                        return;
+                    }
+                    if (this.playPending) return;
+                    this.playPending = true;
                     const playPromise = this.customAudio.play();
                     if (playPromise && typeof playPromise.then === 'function') {
                         playPromise.then(() => {
+                            this.playPending = false;
                             this.removeUnlockListeners();
                         }).catch(() => {
-                            // Caso o navegador bloqueie autoplay sem gesto inicial, destrava no primeiro toque/clique/scroll
+                            this.playPending = false;
                             this.setupUnlockListeners();
                         });
+                    } else {
+                        this.playPending = false;
                     }
                     return;
-                } catch (e) {}
+                } catch (e) {
+                    this.playPending = false;
+                }
                 this.startGenerativeAmbient();
             }
             startGenerativeAmbient() {
