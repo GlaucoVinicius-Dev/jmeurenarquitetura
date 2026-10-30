@@ -1509,8 +1509,9 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: clamp(20px, 3.5vw, 44px) var(--gutter);
-            overflow: hidden;
+            padding: clamp(16px, 3.2vw, 44px) var(--gutter);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             perspective: 1400px;
             will-change: transform, clip-path, opacity;
         }
@@ -1877,6 +1878,47 @@
                 display: none;
             }
         }
+
+        @media (max-height: 740px) {
+            .welcome-splash {
+                padding: 12px var(--gutter);
+            }
+            .welcome-topbar {
+                padding-bottom: 8px;
+                font-size: 0.64rem;
+            }
+            .welcome-footbar {
+                padding-top: 8px;
+                font-size: 0.64rem;
+            }
+            .welcome-stage {
+                gap: 14px;
+                padding: 6px 0;
+            }
+            .welcome-title {
+                font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+            }
+            .welcome-sub {
+                display: none;
+            }
+            .welcome-board-wrap {
+                max-width: 440px;
+            }
+            .welcome-board {
+                max-height: 38vh;
+            }
+            .welcome-sketch-viewport img {
+                max-height: 36vh;
+                object-fit: contain;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .welcome-sunbeam { animation: none !important; }
+            .welcome-sketch-sheen { animation: none !important; }
+            .welcome-sketch-img { animation: none !important; }
+            .welcome-sound-wave i { animation: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -1972,11 +2014,11 @@
         <div class="header-actions-wrap">
             <!-- Controle de Som Arquitetônico (unseen.co style) -->
             <audio id="bgAmbientAudio" src="assets/alex-morgan-blues-jazz-rainy-night-552797.mp3" loop preload="auto" playsinline hidden></audio>
-            <button type="button" class="header-sound is-playing" id="soundToggle" aria-label="Experiência sonora" aria-pressed="true" title="Desativar som">
+            <button type="button" class="header-sound" id="soundToggle" aria-label="Experiência sonora" aria-pressed="false" title="Ativar som ambiente">
                 <span class="sound-bars" aria-hidden="true">
                     <i></i><i></i><i></i><i></i>
                 </span>
-                <span class="sound-text">Som: Ativo</span>
+                <span class="sound-text">Som</span>
             </button>
 
             <a href="https://wa.me/5561982743709" target="_blank" rel="noopener noreferrer" class="header-wa" aria-label="Chamar no WhatsApp">
@@ -2286,7 +2328,7 @@
         /* ---------- utilidades ---------- */
         const $ = (s, c = document) => c.querySelector(s);
         const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
-        const reduceMotion = false;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
         const pad = n => String(n).padStart(2, '0');
         const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2608,13 +2650,25 @@
         let welcomeDismissed = false;
         let stopWelcomeParticles = null;
 
+        // Trava rolagem da página de fundo enquanto a prancha de boas-vindas estiver ativa
+        if (welcomeSplash && !welcomeSplash.classList.contains('is-hidden')) {
+            if (lenis) lenis.stop();
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+        }
+
         // Partículas sutis de luz solar flutuando sobre a prancha em nanquim
         (function initWelcomeParticles() {
             const cvs = $('#welcomeParticles');
-            if (!cvs) return;
+            if (!cvs || reduceMotion) return;
             const ctx = cvs.getContext('2d');
-            let w = (cvs.width = window.innerWidth);
-            let h = (cvs.height = window.innerHeight);
+            let dpr = Math.min(window.devicePixelRatio || 1, 2);
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            cvs.width = w * dpr;
+            cvs.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
             let rafId = null;
             const dots = Array.from({ length: 34 }, () => ({
                 x: Math.random() * w,
@@ -2625,8 +2679,12 @@
                 a: Math.random() * 0.45 + 0.12
             }));
             const onResize = () => {
-                w = cvs.width = window.innerWidth;
-                h = cvs.height = window.innerHeight;
+                dpr = Math.min(window.devicePixelRatio || 1, 2);
+                w = window.innerWidth;
+                h = window.innerHeight;
+                cvs.width = w * dpr;
+                cvs.height = h * dpr;
+                ctx.scale(dpr, dpr);
             };
             window.addEventListener('resize', onResize, { passive: true });
             function draw() {
@@ -2717,6 +2775,14 @@
             welcomeDismissed = true;
             if (stopWelcomeParticles) stopWelcomeParticles();
 
+            // Libera rolagem da página e reseta posição para o topo
+            if (lenis) {
+                lenis.start();
+                lenis.scrollTo(0, { immediate: true });
+            }
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+
             if (withSound) {
                 soundEngine.isPlaying = true;
                 soundEngine.init();
@@ -2768,6 +2834,14 @@
         if (welcomeSplash) {
             welcomeSplash.addEventListener('click', () => dismissWelcome(true));
         }
+
+        // Acessibilidade por teclado (ESC fecha o splash sem som)
+        document.addEventListener('keydown', (e) => {
+            if (!welcomeSplash || welcomeDismissed) return;
+            if (e.key === 'Escape') {
+                dismissWelcome(false);
+            }
+        });
 
         /* ---------- typewriter (frases originais) ---------- */
         const phrases = ["Eu projeto interiores autorais", "Eu projeto espaços residenciais", "Eu projeto espaços comerciais", "Eu projeto lugares com identidade"];

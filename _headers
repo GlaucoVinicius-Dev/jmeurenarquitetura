@@ -12,7 +12,8 @@
 /data/projetos.json
   Cache-Control: no-cache, no-store, must-revalidate
 
-/admin/*
+/admin*
   X-Frame-Options: DENY
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache, no-store, must-revalidate
+
