@@ -1,14 +1,13 @@
 {
   "projetos": [
     {
-      "titulo": "Testes",
-      "categoria": "Comercial",
-      "capa": "Projetos/Testes/Imagens/f0dc8763-d6c8-4c97-a726-65fbd929c303.jpg",
-      "pdf": "Projetos/Testes/Pdf/flutter_01_020_o_que_e_flutter.pdf",
+      "titulo": "testes",
+      "categoria": "Interiores",
+      "capa": "Projetos/testes/Imagens/f0dc8763-d6c8-4c97-a726-65fbd929c303.jpg",
+      "pdf": "Projetos/testes/Pdf/flutter_01_020_o_que_e_flutter.pdf",
       "imagens": [
-        "Projetos/Testes/Imagens/f0dc8763-d6c8-4c97-a726-65fbd929c303.jpg"
-      ],
-      "descricao": "testes"
+        "Projetos/testes/Imagens/f0dc8763-d6c8-4c97-a726-65fbd929c303.jpg"
+      ]
     },
     {
       "titulo": "Apartamento 314 Norte",
