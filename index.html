@@ -1520,11 +1520,11 @@
 
         <div class="header-actions-wrap">
             <!-- Controle de Som Arquitetônico (unseen.co style) -->
-            <button type="button" class="header-sound" id="soundToggle" aria-label="Ativar experiência sonora" aria-pressed="false" title="Ativar som ambiente">
+            <button type="button" class="header-sound is-playing" id="soundToggle" aria-label="Experiência sonora" aria-pressed="true" title="Desativar som">
                 <span class="sound-bars" aria-hidden="true">
                     <i></i><i></i><i></i><i></i>
                 </span>
-                <span class="sound-text">Som</span>
+                <span class="sound-text">Som: Ativo</span>
             </button>
 
             <a href="https://wa.me/5561982743709" target="_blank" rel="noopener noreferrer" class="header-wa" aria-label="Chamar no WhatsApp">
@@ -1877,12 +1877,18 @@
                 this.chordIdx = 0;
                 this.noteStep = 0;
                 this.customAudio = null;
-                this.customAudioUrl = 'assets/ambient.mp3';
-                this.isPlaying = false;
+                this.customAudioUrl = 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
+                this.isPlaying = true;
+                this.unlockBound = null;
             }
             setCustomTrack(src) {
-                const nextUrl = src ? String(src).trim() : 'assets/ambient.mp3';
-                if (this.customAudioUrl === nextUrl) return;
+                const nextUrl = src ? String(src).trim() : 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
+                if (this.customAudioUrl === nextUrl) {
+                    if (this.isPlaying && (!this.customAudio || this.customAudio.paused)) {
+                        this.startAmbient();
+                    }
+                    return;
+                }
                 this.customAudioUrl = nextUrl;
                 if (this.customAudio) {
                     this.customAudio.pause();
@@ -1897,20 +1903,23 @@
                 if (this.ctx) return;
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (!AudioCtx) return;
-                this.ctx = new AudioCtx();
-                this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
-                this.masterGain.connect(this.ctx.destination);
+                try {
+                    this.ctx = new AudioCtx();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
+                    this.masterGain.connect(this.ctx.destination);
+                } catch (e) {}
             }
             toggle() {
                 this.init();
-                if (!this.ctx) return false;
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume().catch(() => {});
                 }
-                if (this.isPlaying) {
-                    this.stopAmbient();
+                const isActuallyAudible = this.isPlaying && this.customAudio && !this.customAudio.paused;
+                if (this.isPlaying && isActuallyAudible) {
                     this.isPlaying = false;
+                    this.removeUnlockListeners();
+                    this.stopAmbient();
                 } else {
                     this.isPlaying = true;
                     this.startAmbient();
@@ -1918,25 +1927,57 @@
                 }
                 return this.isPlaying;
             }
+            setupUnlockListeners() {
+                if (this.unlockBound) return;
+                const events = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'wheel', 'scroll', 'mousemove', 'click'];
+                this.unlockBound = (ev) => {
+                    if (ev && ev.target && ev.target.closest && ev.target.closest('#soundToggle')) {
+                        return;
+                    }
+                    if (!this.isPlaying) {
+                        this.removeUnlockListeners();
+                        return;
+                    }
+                    this.init();
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(() => {});
+                    }
+                    if (this.customAudio && this.customAudio.paused) {
+                        this.customAudio.play().then(() => {
+                            this.removeUnlockListeners();
+                        }).catch(() => {});
+                    } else if (!this.customAudio) {
+                        this.startAmbient();
+                    } else {
+                        this.removeUnlockListeners();
+                    }
+                };
+                events.forEach(ev => window.addEventListener(ev, this.unlockBound, { passive: true, capture: true }));
+            }
+            removeUnlockListeners() {
+                if (!this.unlockBound) return;
+                const events = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'wheel', 'scroll', 'mousemove', 'click'];
+                events.forEach(ev => window.removeEventListener(ev, this.unlockBound, { capture: true }));
+                this.unlockBound = null;
+            }
             startAmbient() {
-                // Toca a trilha MP3 cadastrada (assets/ambient.mp3) em loop contínuo
-                const trackSrc = this.customAudioUrl || 'assets/ambient.mp3';
+                const trackSrc = this.customAudioUrl || 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
                 try {
                     if (!this.customAudio) {
                         this.customAudio = new Audio(url(trackSrc));
                         this.customAudio.loop = true;
                         this.customAudio.volume = 0.55;
+                        this.customAudio.preload = 'auto';
                     }
-                    this.customAudio.play().catch(() => {
-                        if (trackSrc !== 'assets/ambient.mp3') {
-                            this.customAudio = new Audio('assets/ambient.mp3');
-                            this.customAudio.loop = true;
-                            this.customAudio.volume = 0.55;
-                            this.customAudio.play().catch(() => this.startGenerativeAmbient());
-                        } else {
-                            this.startGenerativeAmbient();
-                        }
-                    });
+                    const playPromise = this.customAudio.play();
+                    if (playPromise && typeof playPromise.then === 'function') {
+                        playPromise.then(() => {
+                            this.removeUnlockListeners();
+                        }).catch(() => {
+                            // Caso o navegador bloqueie autoplay sem gesto inicial, destrava no primeiro toque/clique/scroll
+                            this.setupUnlockListeners();
+                        });
+                    }
                     return;
                 } catch (e) {}
                 this.startGenerativeAmbient();
@@ -2081,6 +2122,7 @@
             }
         }
         const soundEngine = new SoundEngine();
+        soundEngine.startAmbient();
         const soundToggle = $('#soundToggle');
         if (soundToggle) {
             soundToggle.addEventListener('click', () => {
