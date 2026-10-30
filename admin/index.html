@@ -47,6 +47,15 @@
         button, input, select, textarea { font: inherit; color: inherit; }
         button { cursor: pointer; }
         [hidden] { display: none !important; }
+        html.is-authenticated #loginScreen { display: none !important; }
+        html.is-authenticated #adminApp { display: grid !important; }
+    </style>
+    <script>
+        if (sessionStorage.getItem('jm_admin_session') === '1' || localStorage.getItem('jm_admin_session') === '1') {
+            document.documentElement.classList.add('is-authenticated');
+        }
+    </script>
+    <style>
 
         /* =========================================================
            1. TELA DE LOGIN SPLIT-SCREEN (Inspiração: incident.io & Sprig no Mobbin)
@@ -1645,11 +1654,23 @@
         function getValidUser() { return localStorage.getItem(CRED_USER_KEY) || 'jmeuren@gmail.com'; }
         function getValidPass() { return localStorage.getItem(CRED_PASS_KEY) || 'jmeuren2026'; }
 
+        function isSessionActive() {
+            return sessionStorage.getItem(AUTH_KEY) === '1' || localStorage.getItem(AUTH_KEY) === '1';
+        }
+
         function enterDashboard() {
             sessionStorage.setItem(AUTH_KEY, '1');
+            localStorage.setItem(AUTH_KEY, '1');
+            document.documentElement.classList.add('is-authenticated');
             $('#loginScreen').hidden = true;
             $('#adminApp').hidden = false;
             renderDashboard();
+        }
+
+        if (isSessionActive()) {
+            document.documentElement.classList.add('is-authenticated');
+            $('#loginScreen').hidden = true;
+            $('#adminApp').hidden = false;
         }
 
         $('#pwToggle').addEventListener('click', () => {
@@ -1676,6 +1697,8 @@
 
         $('#btnLogout').addEventListener('click', () => {
             sessionStorage.removeItem(AUTH_KEY);
+            localStorage.removeItem(AUTH_KEY);
+            document.documentElement.classList.remove('is-authenticated');
             $('#adminApp').hidden = true;
             $('#loginScreen').hidden = false;
         });
@@ -1737,7 +1760,7 @@
                 }, 4800);
             }
 
-            if (sessionStorage.getItem(AUTH_KEY) === '1') {
+            if (isSessionActive()) {
                 enterDashboard();
             } else if (typeof gsap !== 'undefined') {
                 gsap.from('#loginBox', { opacity: 0, y: 24, duration: 0.75, ease: 'power3.out' });
