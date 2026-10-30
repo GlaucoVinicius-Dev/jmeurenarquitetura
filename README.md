@@ -104,7 +104,7 @@ jmeurenarquitetura/
 │   ├── ilustracao-nanquim.png # Croqui autoral da tela de boas-vindas
 │   ├── LogoJmeuren-removebg.png
 │   ├── sobre.jpg              # Foto de perfil profissional do arquiteto
-│   └── alex-morgan-blues-jazz-rainy-night-552797.mp3
+│   └── ambient.mp3            # Trilha sonora ambiente em alta fidelidade
 ├── Projetos/                  # Acervo fotográfico e pranchas organizadas por projeto
 │   ├── apart314norte/         # Imagens/ e Pdf/
 │   ├── apart403norte/
@@ -187,3 +187,4 @@ Brasília, DF • Brasil
 *Todos os direitos reservados.*
 
 </div>
+
