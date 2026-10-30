@@ -12,14 +12,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous">
 
     <!-- Lenis for Silky Smooth Inertia Scrolling (Inspired by unseen.co) -->
-    <link rel="stylesheet" href="https://unpkg.com/lenis@1.1.18/dist/lenis.css">
-    <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/lenis@1.1.18/dist/lenis.css" integrity="sha384-KJ5PVEqRubvyTkEk9eSz4NphibkpEJll7FJEsAmuLvb6BiwWLVXVOVoQsI5ReK8E" crossorigin="anonymous">
+    <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js" integrity="sha384-tKsJDT6PlUI0pSBt9/sBKJluKgA19/a6mBrDsZaXotLB4ZYfMGM6xt6/WgGpYhTm" crossorigin="anonymous"></script>
     <!-- GSAP & ScrollTrigger -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" integrity="sha384-Z3REaz79l2IaAZqJsSABtTbhjgOUYyV3p90XNnAPCSHg3EMTz1fouunq9WZRtj3d" crossorigin="anonymous"></script>
 
     <style>
         /* =========================================================
@@ -2290,7 +2290,11 @@
         const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
         const pad = n => String(n).padStart(2, '0');
         const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const url = p => encodeURI(p);
+        const url = p => {
+            const raw = String(p == null ? '' : p).trim();
+            if (!raw || /^(?:javascript|vbscript|data:text\/html)/i.test(raw)) return '';
+            return encodeURI(raw).replace(/["'<>]/g, c => ({ '"': '%22', "'": '%27', '<': '%3C', '>': '%3E' }[c]));
+        };
         const wait = ms => new Promise(r => setTimeout(r, ms));
         const BLANK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E";
 
@@ -4208,8 +4212,8 @@
             initKineticMarquee();
             buildFilters();
             renderWork(false);
-            if (window.location.hash) {
-                const target = $(window.location.hash);
+            if (window.location.hash && /^#[a-zA-Z][\w-]*$/.test(window.location.hash)) {
+                const target = document.getElementById(window.location.hash.slice(1));
                 if (target) {
                     setTimeout(() => {
                         if (lenis) lenis.scrollTo(target, { offset: -20, immediate: true });

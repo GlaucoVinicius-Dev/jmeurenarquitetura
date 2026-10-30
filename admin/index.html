@@ -3,13 +3,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex" />
+    <meta name="robots" content="noindex, nofollow" />
     <title>J.M Studio Admin — Gestão de Portfólio &amp; Projetos</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
     <style>
         :root {
             --paper: #F4EFE7;
@@ -1613,11 +1613,23 @@
         let isDirty = false;
         const previewCache = {};
 
+        function sanitizeFileName(name) {
+            return String(name || 'arquivo')
+                .replace(/\\/g, '/')
+                .split('/')
+                .pop()
+                .replace(/\.\./g, '')
+                .replace(/[<>:"|?*\x00-\x1f]/g, '')
+                .trim() || 'arquivo';
+        }
+
         function resolveImgUrl(p) {
             if (!p) return '';
             if (previewCache[p]) return previewCache[p];
-            if (p.startsWith('data:') || p.startsWith('http://') || p.startsWith('https://') || p.startsWith('../')) return p;
-            return '../' + encodeURI(p);
+            const raw = String(p).trim();
+            if (/^(?:javascript|vbscript|data:text\/html)/i.test(raw)) return '';
+            if (raw.startsWith('data:image/') || raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('../')) return raw;
+            return '../' + encodeURI(raw).replace(/["'<>]/g, c => ({ '"': '%22', "'": '%27', '<': '%3C', '>': '%3E' }[c]));
         }
 
         // Fallback automático para GitHub Raw enquanto o Cloudflare Pages ainda está processando o deploy (~45s)
@@ -1661,13 +1673,33 @@
             }
         }
 
-        /* ---------- 1. AUTENTICAÇÃO E LOGIN ---------- */
+        /* ---------- 1. AUTENTICAÇÃO E LOGIN (SHA-256 WEB CRYPTO) ---------- */
         const AUTH_KEY = 'jm_admin_session';
         const CRED_USER_KEY = 'jm_admin_user';
         const CRED_PASS_KEY = 'jm_admin_pass';
+        const CRED_PASS_HASH_KEY = 'jm_admin_pass_sha256';
+        const DEFAULT_PASS_SHA256 = '506b351ad4b91bd5860627de9ca1b7dfeb6d021017eae0057aa247f966f67a25';
+
+        async function sha256Hex(str) {
+            const buf = new TextEncoder().encode(String(str || ''));
+            const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+            return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         function getValidUser() { return localStorage.getItem(CRED_USER_KEY) || 'jmeuren@gmail.com'; }
-        function getValidPass() { return localStorage.getItem(CRED_PASS_KEY) || 'jmeuren2026'; }
+        async function verifyAdminPass(candidate) {
+            const inputHash = await sha256Hex(candidate);
+            const savedHash = localStorage.getItem(CRED_PASS_HASH_KEY);
+            if (savedHash) return inputHash === savedHash;
+            const legacyPlain = localStorage.getItem(CRED_PASS_KEY);
+            if (legacyPlain) {
+                const legacyHash = await sha256Hex(legacyPlain);
+                localStorage.setItem(CRED_PASS_HASH_KEY, legacyHash);
+                localStorage.removeItem(CRED_PASS_KEY);
+                return inputHash === legacyHash;
+            }
+            return inputHash === DEFAULT_PASS_SHA256;
+        }
 
         function isSessionActive() {
             return sessionStorage.getItem(AUTH_KEY) === '1' || localStorage.getItem(AUTH_KEY) === '1';
@@ -1695,11 +1727,12 @@
             $('#pwToggle').innerHTML = isPw ? '<i class="far fa-eye-slash"></i>' : '<i class="far fa-eye"></i>';
         });
 
-        $('#loginForm').addEventListener('submit', e => {
+        $('#loginForm').addEventListener('submit', async e => {
             e.preventDefault();
             const u = $('#loginEmail').value.trim();
             const p = $('#loginPass').value;
-            if ((u.toLowerCase() === getValidUser().toLowerCase() || u.toLowerCase() === 'admin') && p === getValidPass()) {
+            const passOk = await verifyAdminPass(p);
+            if ((u.toLowerCase() === getValidUser().toLowerCase() || u.toLowerCase() === 'admin') && passOk) {
                 $('#loginError').hidden = true;
                 enterDashboard();
             } else {
@@ -2344,12 +2377,17 @@
                 let successCount = 0;
                 for (let i = 0; i < files.length; i++) {
                     const f = files[i];
+                    const safeName = sanitizeFileName(f.name);
+                    if (!/\.(jpe?g|png|webp|avif|gif)$/i.test(safeName)) {
+                        alert(`Formato não permitido em "${safeName}". Envie apenas imagens JPG, PNG, WEBP ou AVIF.`);
+                        continue;
+                    }
                     if (f.size > 100 * 1024 * 1024) {
-                        alert(`A foto "${f.name}" tem ${(f.size / (1024 * 1024)).toFixed(1)}MB e ultrapassa o limite de 100MB.`);
+                        alert(`A foto "${safeName}" tem ${(f.size / (1024 * 1024)).toFixed(1)}MB e ultrapassa o limite de 100MB.`);
                         continue;
                     }
                     setUploadBusy(true, `Enviando foto ${i + 1} de ${files.length}...`);
-                    const relPath = `Projetos/${folder}/Imagens/${f.name}`;
+                    const relPath = `Projetos/${folder}/Imagens/${safeName}`;
                     const savedPath = await uploadFileToServer(relPath, f);
                     if (savedPath) {
                         draftImages.push(savedPath);
@@ -2389,8 +2427,13 @@
                 alert(`O arquivo PDF tem ${(f.size / (1024 * 1024)).toFixed(1)}MB e ultrapassa o limite de 100MB do GitHub. Comprima o arquivo antes de enviar.`);
                 return;
             }
+            const safePdfName = sanitizeFileName(f.name);
+            if (!/\.pdf$/i.test(safePdfName)) {
+                alert('Apenas arquivos com extensão .pdf são permitidos.');
+                return;
+            }
             const folder = ($('#fFolder').value.trim() || slugifyFolder($('#fTitulo').value) || 'novoProjeto').replace(/[^a-zA-Z0-9_-]/g, '');
-            const relPath = `Projetos/${folder}/Pdf/${f.name}`;
+            const relPath = `Projetos/${folder}/Pdf/${safePdfName}`;
             setUploadBusy(true, `Enviando prancha PDF (${(f.size / (1024 * 1024)).toFixed(1)}MB)...`);
             showToast('Enviando prancha PDF...');
             try {
@@ -2597,7 +2640,12 @@
         audioInp.addEventListener('change', async () => {
             const f = audioInp.files && audioInp.files[0];
             if (!f) return;
-            const relPath = `assets/${f.name}`;
+            const safeAudioName = sanitizeFileName(f.name);
+            if (!/\.(mp3|wav|ogg|m4a)$/i.test(safeAudioName)) {
+                alert('Apenas arquivos de áudio (.mp3, .wav, .ogg, .m4a) são permitidos.');
+                return;
+            }
+            const relPath = `assets/${safeAudioName}`;
             showToast('Enviando arquivo de áudio...');
             const saved = await uploadFileToServer(relPath, f);
             customAudio = saved;
@@ -2625,14 +2673,15 @@
         });
 
         /* ---------- 7. ALTERAÇÃO DE SENHA ---------- */
-        $('#btnSaveCredentials').addEventListener('click', () => {
+        $('#btnSaveCredentials').addEventListener('click', async () => {
             const currentPass = $('#cfgAdminCurrentPass').value;
             const u = $('#cfgAdminUser').value.trim();
             const p = $('#cfgAdminPass').value.trim();
             const pConfirm = $('#cfgAdminPassConfirm').value.trim();
             const err = $('#cfgAdminError');
 
-            if (currentPass !== getValidPass()) {
+            const currentOk = await verifyAdminPass(currentPass);
+            if (!currentOk) {
                 err.textContent = 'A senha atual informada está incorreta.';
                 err.hidden = false;
                 return;
@@ -2655,7 +2704,9 @@
 
             err.hidden = true;
             if (u) localStorage.setItem(CRED_USER_KEY, u);
-            localStorage.setItem(CRED_PASS_KEY, p);
+            const newHash = await sha256Hex(p);
+            localStorage.setItem(CRED_PASS_HASH_KEY, newHash);
+            localStorage.removeItem(CRED_PASS_KEY);
 
             $('#cfgAdminCurrentPass').value = '';
             $('#cfgAdminPass').value = '';
