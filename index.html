@@ -3436,13 +3436,38 @@
             if (Math.abs(dx) > 40) lbStep(dx < 0 ? 1 : -1);
         });
 
-        function openPdf(pi, trigger) {
+        const GH_RAW_BASE = 'https://raw.githubusercontent.com/GlaucoVinicius-Dev/jmeurenarquitetura/main/';
+
+        // Fallback instantâneo para imagens recém-enviadas enquanto o Cloudflare Pages finaliza o build (~45s)
+        window.addEventListener('error', e => {
+            const t = e.target;
+            if (t && t.tagName === 'IMG' && !t.dataset.ghFallback) {
+                const rawSrc = t.getAttribute('src') || '';
+                if (rawSrc.startsWith('Projetos/') || rawSrc.startsWith('assets/')) {
+                    t.dataset.ghFallback = '1';
+                    t.src = GH_RAW_BASE + rawSrc + '?t=' + Date.now();
+                }
+            }
+        }, true);
+
+        async function openPdf(pi, trigger) {
             const p = projects[pi];
             if (!p || !hasPdf(p)) return;
+            const localPdfUrl = url(p.pdf);
+            const rawGhPdfUrl = GH_RAW_BASE + url(p.pdf);
             $('#pdfTitle').textContent = p.titulo;
-            $('#pdfFrame').src = url(p.pdf);
-            $('#pdfNewTab').href = url(p.pdf);
+            $('#pdfFrame').src = localPdfUrl;
+            $('#pdfNewTab').href = localPdfUrl;
             openOverlay(pdfEl, $('#pdfClose'), trigger);
+
+            // Se o arquivo acabou de ser enviado e o Cloudflare Pages ainda está processando o deploy (404 temporário), usa o espelho imediato do GitHub
+            try {
+                const headRes = await fetch(localPdfUrl, { method: 'HEAD', cache: 'no-store' });
+                if (!headRes.ok) {
+                    $('#pdfFrame').src = 'https://docs.google.com/viewer?url=' + encodeURIComponent(rawGhPdfUrl) + '&embedded=true';
+                    $('#pdfNewTab').href = rawGhPdfUrl;
+                }
+            } catch (e) {}
         }
         $('#pdfClose').addEventListener('click', () => closeOverlay(pdfEl));
 
@@ -3467,11 +3492,38 @@
         });
 
         /* ---------- carregamento inicial ---------- */
+        function decodeBase64Utf8(b64) {
+            const bin = atob(String(b64 || '').replace(/\s/g, ''));
+            const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+            return new TextDecoder('utf-8').decode(bytes);
+        }
+
         async function loadProjects() {
             try {
-                const res = await fetch('data/projetos.json?t=' + Date.now(), { cache: 'no-store' });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
+                let data = null;
+                const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+                if (!isLocal) {
+                    try {
+                        const headers = { 'Accept': 'application/vnd.github.v3+json', 'If-None-Match': '' };
+                        const tk = localStorage.getItem('jm_gh_token');
+                        if (tk) headers['Authorization'] = `Bearer ${tk}`;
+                        const ghRes = await fetch('https://api.github.com/repos/GlaucoVinicius-Dev/jmeurenarquitetura/contents/data/projetos.json?ref=main&_t=' + Date.now(), {
+                            cache: 'no-store',
+                            headers
+                        });
+                        if (ghRes.ok) {
+                            const ghJson = await ghRes.json();
+                            if (ghJson && ghJson.content) {
+                                data = JSON.parse(decodeBase64Utf8(ghJson.content));
+                            }
+                        }
+                    } catch (e) {}
+                }
+                if (!data) {
+                    const res = await fetch('data/projetos.json?t=' + Date.now(), { cache: 'no-store' });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    data = await res.json();
+                }
                 projects = (data.projetos || []).filter(p => p && p.titulo);
                 const customTrack = data.musica || localStorage.getItem('jm_custom_audio') || 'assets/ambient.mp3';
                 soundEngine.setCustomTrack(customTrack);

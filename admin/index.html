@@ -1611,12 +1611,27 @@
         let editingIdx = -1; // -1 = novo projeto
         let draftImages = [];
         let isDirty = false;
+        const previewCache = {};
 
         function resolveImgUrl(p) {
             if (!p) return '';
+            if (previewCache[p]) return previewCache[p];
             if (p.startsWith('data:') || p.startsWith('http://') || p.startsWith('https://') || p.startsWith('../')) return p;
             return '../' + encodeURI(p);
         }
+
+        // Fallback automático para GitHub Raw enquanto o Cloudflare Pages ainda está processando o deploy (~45s)
+        window.addEventListener('error', e => {
+            const t = e.target;
+            if (t && t.tagName === 'IMG' && !t.dataset.ghFallback) {
+                const rawSrc = t.getAttribute('src') || '';
+                if (rawSrc.startsWith('../Projetos/') || rawSrc.startsWith('../assets/')) {
+                    t.dataset.ghFallback = '1';
+                    const cleanRel = rawSrc.replace(/^\.\.\//, '');
+                    t.src = `https://raw.githubusercontent.com/GlaucoVinicius-Dev/jmeurenarquitetura/main/${cleanRel}?t=${Date.now()}`;
+                }
+            }
+        }, true);
 
         function slugifyFolder(title) {
             return String(title || 'novoProjeto')
@@ -1704,10 +1719,37 @@
         });
 
         /* ---------- 2. CARREGAMENTO DE DADOS ---------- */
+        function decodeBase64Utf8(b64) {
+            const bin = atob(String(b64 || '').replace(/\s/g, ''));
+            const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+            return new TextDecoder('utf-8').decode(bytes);
+        }
+
         async function loadData() {
             try {
-                const res = await fetch('../data/projetos.json?t=' + Date.now(), { cache: 'no-store' });
-                const data = await res.json();
+                let data = null;
+                const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+                if (!isLocal) {
+                    try {
+                        const headers = { 'Accept': 'application/vnd.github.v3+json', 'If-None-Match': '' };
+                        const tk = localStorage.getItem('jm_gh_token');
+                        if (tk) headers['Authorization'] = `Bearer ${tk}`;
+                        const ghRes = await fetch(`https://api.github.com/repos/GlaucoVinicius-Dev/jmeurenarquitetura/contents/data/projetos.json?ref=main&_t=${Date.now()}`, {
+                            cache: 'no-store',
+                            headers
+                        });
+                        if (ghRes.ok) {
+                            const ghJson = await ghRes.json();
+                            if (ghJson && ghJson.content) {
+                                data = JSON.parse(decodeBase64Utf8(ghJson.content));
+                            }
+                        }
+                    } catch (e) {}
+                }
+                if (!data) {
+                    const res = await fetch('../data/projetos.json?t=' + Date.now(), { cache: 'no-store' });
+                    data = await res.json();
+                }
                 projects = Array.isArray(data.projetos) ? data.projetos : [];
                 customAudio = data.musica || localStorage.getItem('jm_custom_audio') || 'assets/ambient.mp3';
                 $('#customAudioInput').value = customAudio;
@@ -2098,8 +2140,10 @@
             }
         }
 
+        const lastKnownSha = {};
+
         async function uploadLargeFileToGithub(path, base64Content, commitMsg, token) {
-            // Suporta arquivos de até 100MB via GitHub Git Blobs API
+            // Suporta arquivos de até 100MB via GitHub Git Blobs API e evita conflitos de SHA individual
             const blobRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/blobs`, {
                 method: 'POST',
                 headers: {
@@ -2115,11 +2159,13 @@
             }
             const { sha: blobSha } = await blobRes.json();
 
-            // Pega o commit atual da branch
-            const refRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/ref/heads/${GITHUB_BRANCH}`, {
+            // Pega o commit atual da branch (sem cache)
+            const refRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/ref/heads/${GITHUB_BRANCH}?_t=${Date.now()}`, {
+                cache: 'no-store',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Accept': 'application/vnd.github.v3+json',
+                    'If-None-Match': ''
                 }
             });
             if (!refRes.ok) throw new Error('Falha ao obter referência da branch no GitHub');
@@ -2127,10 +2173,12 @@
             const latestCommitSha = refData.object.sha;
 
             // Pega a tree base do commit
-            const commitRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/commits/${latestCommitSha}`, {
+            const commitRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/commits/${latestCommitSha}?_t=${Date.now()}`, {
+                cache: 'no-store',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Accept': 'application/vnd.github.v3+json',
+                    'If-None-Match': ''
                 }
             });
             if (!commitRes.ok) throw new Error('Falha ao obter árvore de arquivos no GitHub');
@@ -2178,9 +2226,10 @@
                     'Accept': 'application/vnd.github.v3+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ sha: newCommitSha })
+                body: JSON.stringify({ sha: newCommitSha, force: true })
             });
             if (!updateRefRes.ok) throw new Error('Falha ao atualizar branch no GitHub');
+            lastKnownSha[path] = blobSha;
             return true;
         }
 
@@ -2191,18 +2240,20 @@
                 return false;
             }
 
-            // Tenta primeiro via Contents API padrão (até 25MB)
-            let sha = null;
+            // Busca o SHA mais recente sem qualquer cache do navegador
+            let sha = lastKnownSha[path] || null;
             try {
-                const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURI(path)}?ref=${GITHUB_BRANCH}`, {
+                const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURI(path)}?ref=${GITHUB_BRANCH}&_t=${Date.now()}`, {
+                    cache: 'no-store',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
+                        'Accept': 'application/vnd.github.v3+json',
+                        'If-None-Match': ''
                     }
                 });
                 if (getRes.ok) {
                     const json = await getRes.json();
-                    sha = json.sha;
+                    if (json && json.sha) sha = json.sha;
                 }
             } catch (e) {}
 
@@ -2223,11 +2274,19 @@
                 body: JSON.stringify(body)
             });
 
-            if (putRes.ok) return true;
+            if (putRes.ok) {
+                try {
+                    const putJson = await putRes.json();
+                    if (putJson && putJson.content && putJson.content.sha) {
+                        lastKnownSha[path] = putJson.content.sha;
+                    }
+                } catch (e) {}
+                return true;
+            }
 
-            // Se falhou por limite de tamanho (422) ou similar, tenta via Git Data Blobs API (até 100MB)
-            if (putRes.status === 422 || putRes.status === 413) {
-                console.warn('Arquivo grande: tentando envio via Git Data Blobs API (até 100MB)...');
+            // Se deu 409 (conflito de SHA por cache de 60s da API do GitHub) ou 422/413 (limite de tamanho), usa a Git Data Blobs API direto na branch
+            if (putRes.status === 409 || putRes.status === 422 || putRes.status === 413) {
+                console.warn(`Status ${putRes.status}: enviando via Git Data Blobs API...`);
                 try {
                     return await uploadLargeFileToGithub(path, base64Content, commitMsg, token);
                 } catch (errLarge) {
@@ -2245,6 +2304,9 @@
 
         async function uploadFileToServer(targetPath, file) {
             const { base64, dataUrl } = await fileToBase64(file);
+            if (dataUrl && file.type && file.type.startsWith('image/')) {
+                previewCache[targetPath] = dataUrl;
+            }
 
             // 1. Tenta salvar no servidor local (caso esteja rodando em localhost)
             try {
@@ -2401,51 +2463,61 @@
             return window.btoa(unescape(encodeURIComponent(str)));
         }
 
+        let isSavingServer = false;
         async function saveToServer(silent = false) {
-            const payload = {
-                projetos: projects
-            };
-            if (customAudio) payload.musica = customAudio;
-            const jsonText = JSON.stringify(payload, null, 2);
-
-            // 1. Tenta salvar no servidor local (quando rodando com python nocache_server.py)
+            if (isSavingServer) {
+                showToast('Salvando alterações... aguarde concluir.');
+                return;
+            }
+            isSavingServer = true;
             try {
-                localStorage.setItem('jm_custom_audio', customAudio || '');
-                const res = await fetch('/api/save-projects', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: jsonText
-                });
-                if (res.ok) {
-                    markDirty(false);
-                    if (!silent) showToast('Portfólio salvo diretamente em data/projetos.json!');
-                    else showToast('Alterações salvas automaticamente no servidor!');
-                    return;
-                }
-            } catch (e) {}
+                const payload = {
+                    projetos: projects
+                };
+                if (customAudio) payload.musica = customAudio;
+                const jsonText = JSON.stringify(payload, null, 2);
 
-            // 2. Se estiver na nuvem (Cloudflare), salva diretamente no GitHub via Token Seguro
-            const token = getGithubToken();
-            if (token) {
+                // 1. Tenta salvar no servidor local (quando rodando com python nocache_server.py)
                 try {
-                    showToast('Publicando alterações no site oficial (GitHub / Cloudflare)...');
-                    const b64 = utf8ToBase64(jsonText);
-                    const ok = await uploadFileToGithub('data/projetos.json', b64, 'cms: atualiza data/projetos.json via painel admin');
-                    if (ok) {
+                    localStorage.setItem('jm_custom_audio', customAudio || '');
+                    const res = await fetch('/api/save-projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: jsonText
+                    });
+                    if (res.ok) {
                         markDirty(false);
-                        showToast('✓ Salvo e publicado com sucesso no site oficial!');
+                        if (!silent) showToast('Portfólio salvo diretamente em data/projetos.json!');
+                        else showToast('Alterações salvas automaticamente no servidor!');
                         return;
                     }
-                } catch (e) {
-                    console.error('Erro ao salvar no GitHub:', e);
-                }
-            }
+                } catch (e) {}
 
-            // 3. Fallback: baixa o arquivo JSON
-            if (!silent) {
-                downloadJsonFile(payload);
-                markDirty(false);
-                showToast('Arquivo projetos.json baixado com suas alterações!');
+                // 2. Se estiver na nuvem (Cloudflare), salva diretamente no GitHub via Token Seguro
+                const token = getGithubToken();
+                if (token) {
+                    try {
+                        showToast('Publicando alterações no site oficial (GitHub / Cloudflare)...');
+                        const b64 = utf8ToBase64(jsonText);
+                        const ok = await uploadFileToGithub('data/projetos.json', b64, 'cms: atualiza data/projetos.json via painel admin');
+                        if (ok) {
+                            markDirty(false);
+                            showToast('✓ Salvo e publicado com sucesso no site oficial!');
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Erro ao salvar no GitHub:', e);
+                    }
+                }
+
+                // 3. Fallback: baixa o arquivo JSON
+                if (!silent) {
+                    downloadJsonFile(payload);
+                    markDirty(false);
+                    showToast('Arquivo projetos.json baixado com suas alterações!');
+                }
+            } finally {
+                isSavingServer = false;
             }
         }
 
