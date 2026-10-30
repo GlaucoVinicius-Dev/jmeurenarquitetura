@@ -1496,10 +1496,191 @@
             .contact-arrow { width: 42px; height: 42px; }
             .ov-btn { height: 36px; padding: 0 12px; font-size: 0.78rem; }
         }
+
+        /* =========================================================
+           SPLASH DE ENTRADA ARQUITETÔNICO (Estilo Awwwards / Unseen.co)
+           ========================================================= */
+        .welcome-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--ink);
+            color: var(--paper);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: opacity 0.85s var(--ease), visibility 0.85s var(--ease), transform 0.9s var(--ease);
+        }
+        .welcome-splash.is-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-4%);
+        }
+        .welcome-splash::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(to right, rgba(244, 239, 231, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(244, 239, 231, 0.04) 1px, transparent 1px);
+            background-size: 72px 72px;
+            pointer-events: none;
+        }
+        .welcome-splash::after {
+            content: '';
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(194, 74, 51, 0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .welcome-inner {
+            position: relative;
+            z-index: 2;
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+        }
+        .welcome-logo-ring {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            border: 1px solid rgba(244, 239, 231, 0.18);
+            background: rgba(244, 239, 231, 0.95);
+            display: grid;
+            place-items: center;
+            padding: 14px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+            margin-bottom: 4px;
+        }
+        .welcome-logo-ring img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .welcome-eyebrow {
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--clay);
+        }
+        .welcome-title {
+            font-family: var(--f-display);
+            font-size: clamp(2.4rem, 5.5vw, 4rem);
+            font-weight: 400;
+            line-height: 1.05;
+            letter-spacing: -0.01em;
+            color: var(--paper);
+        }
+        .welcome-title em {
+            font-style: italic;
+            color: var(--clay);
+        }
+        .welcome-sub {
+            font-size: 0.95rem;
+            color: var(--muted-dark);
+            max-width: 390px;
+            line-height: 1.6;
+        }
+        .welcome-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-top: 10px;
+        }
+        .welcome-btn-enter {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(229, 154, 130, 0.45);
+            background: var(--terra);
+            color: var(--paper);
+            font-family: var(--f-sans);
+            font-size: 0.92rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            box-shadow: 0 14px 36px rgba(194, 74, 51, 0.32);
+            transition: transform 0.35s var(--ease), background 0.35s var(--ease), box-shadow 0.35s var(--ease);
+        }
+        .welcome-btn-enter:hover {
+            transform: translateY(-2px) scale(1.02);
+            background: #d1533b;
+            box-shadow: 0 18px 44px rgba(194, 74, 51, 0.45);
+        }
+        .welcome-sound-wave {
+            display: inline-flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 14px;
+        }
+        .welcome-sound-wave i {
+            display: block;
+            width: 2px;
+            background: currentColor;
+            border-radius: 2px;
+            animation: welcomeWave 1s ease-in-out infinite alternate;
+        }
+        .welcome-sound-wave i:nth-child(1) { height: 6px; animation-delay: 0s; }
+        .welcome-sound-wave i:nth-child(2) { height: 13px; animation-delay: 0.2s; }
+        .welcome-sound-wave i:nth-child(3) { height: 9px; animation-delay: 0.4s; }
+        .welcome-sound-wave i:nth-child(4) { height: 14px; animation-delay: 0.15s; }
+        @keyframes welcomeWave {
+            0% { transform: scaleY(0.35); }
+            100% { transform: scaleY(1); }
+        }
+        .welcome-btn-mute {
+            background: transparent;
+            border: 0;
+            color: rgba(244, 239, 231, 0.55);
+            font-family: var(--f-mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 6px 12px;
+            transition: color 0.25s;
+        }
+        .welcome-btn-mute:hover {
+            color: var(--paper);
+        }
     </style>
 </head>
 <body>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+    <!-- TELA DE BOAS-VINDAS / EXPERIÊNCIA SONORA -->
+    <div class="welcome-splash" id="welcomeSplash" role="dialog" aria-modal="true" aria-label="Boas-vindas ao portfólio J.Meuren">
+        <div class="welcome-inner">
+            <div class="welcome-logo-ring">
+                <img src="assets/LogoJmeuren-removebg.png" alt="J.Meuren Arquitetura &amp; Interiores">
+            </div>
+            <span class="welcome-eyebrow">J.Meuren • Arquitetura &amp; Interiores</span>
+            <h2 class="welcome-title">Arquitetura é <em>música edificada.</em></h2>
+            <p class="welcome-sub">Uma experiência visual e sonora pensada para revelar espaços com identidade.</p>
+            <div class="welcome-actions">
+                <button type="button" class="welcome-btn-enter" id="btnEnterWithSound">
+                    <span class="welcome-sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                    <span>Entrar no Portfólio</span>
+                </button>
+                <button type="button" class="welcome-btn-mute" id="btnEnterMuted">Entrar sem som</button>
+            </div>
+        </div>
+    </div>
 
     <!-- CABEÇALHO -->
     <header class="site-header" id="siteHeader">
@@ -1520,7 +1701,7 @@
 
         <div class="header-actions-wrap">
             <!-- Controle de Som Arquitetônico (unseen.co style) -->
-            <audio id="bgAmbientAudio" src="assets/alex-morgan-blues-jazz-rainy-night-552797.mp3" autoplay loop preload="auto" playsinline hidden></audio>
+            <audio id="bgAmbientAudio" src="assets/alex-morgan-blues-jazz-rainy-night-552797.mp3" loop preload="auto" playsinline hidden></audio>
             <button type="button" class="header-sound is-playing" id="soundToggle" aria-label="Experiência sonora" aria-pressed="true" title="Desativar som">
                 <span class="sound-bars" aria-hidden="true">
                     <i></i><i></i><i></i><i></i>
@@ -1879,7 +2060,7 @@
                 this.noteStep = 0;
                 this.customAudio = $('#bgAmbientAudio') || null;
                 this.customAudioUrl = 'assets/alex-morgan-blues-jazz-rainy-night-552797.mp3';
-                this.isPlaying = true;
+                this.isPlaying = false;
                 this.unlockBound = null;
                 this.playPending = false;
                 if (this.customAudio) {
@@ -2131,17 +2312,64 @@
             }
         }
         const soundEngine = new SoundEngine();
-        soundEngine.startAmbient();
         const soundToggle = $('#soundToggle');
+        function syncSoundToggleUI(active) {
+            if (!soundToggle) return;
+            soundToggle.classList.toggle('is-playing', active);
+            soundToggle.setAttribute('aria-pressed', String(active));
+            const text = soundToggle.querySelector('.sound-text');
+            if (text) text.textContent = active ? 'Som: Ativo' : 'Som';
+            soundToggle.setAttribute('title', active ? 'Desativar som' : 'Ativar som ambiente');
+        }
         if (soundToggle) {
             soundToggle.addEventListener('click', () => {
                 const active = soundEngine.toggle();
-                soundToggle.classList.toggle('is-playing', active);
-                soundToggle.setAttribute('aria-pressed', String(active));
-                const text = soundToggle.querySelector('.sound-text');
-                if (text) text.textContent = active ? 'Som: Ativo' : 'Som';
-                soundToggle.setAttribute('title', active ? 'Desativar som' : 'Ativar som ambiente');
+                syncSoundToggleUI(active);
             });
+        }
+
+        const welcomeSplash = $('#welcomeSplash');
+        const btnEnterWithSound = $('#btnEnterWithSound');
+        const btnEnterMuted = $('#btnEnterMuted');
+        function dismissWelcome(withSound) {
+            if (!welcomeSplash || welcomeSplash.classList.contains('is-hidden')) return;
+            welcomeSplash.classList.add('is-hidden');
+            setTimeout(() => { welcomeSplash.hidden = true; }, 900);
+            if (withSound) {
+                soundEngine.isPlaying = true;
+                soundEngine.init();
+                if (soundEngine.ctx && soundEngine.ctx.state === 'suspended') {
+                    soundEngine.ctx.resume().catch(() => {});
+                }
+                if (soundEngine.customAudio) {
+                    soundEngine.customAudio.muted = false;
+                    soundEngine.customAudio.volume = 0.55;
+                    soundEngine.customAudio.play().catch(() => soundEngine.startAmbient());
+                } else {
+                    soundEngine.startAmbient();
+                }
+                syncSoundToggleUI(true);
+            } else {
+                soundEngine.isPlaying = false;
+                soundEngine.removeUnlockListeners();
+                soundEngine.stopAmbient();
+                syncSoundToggleUI(false);
+            }
+        }
+        if (btnEnterWithSound) {
+            btnEnterWithSound.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissWelcome(true);
+            });
+        }
+        if (btnEnterMuted) {
+            btnEnterMuted.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissWelcome(false);
+            });
+        }
+        if (welcomeSplash) {
+            welcomeSplash.addEventListener('click', () => dismissWelcome(true));
         }
 
         /* ---------- typewriter (frases originais) ---------- */
